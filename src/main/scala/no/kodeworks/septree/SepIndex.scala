@@ -1,6 +1,6 @@
 package no.kodeworks.septree
 
-import no.kodeworks.septree.SepIndex.{keyFoci, keysPerShortIndex}
+import no.kodeworks.septree.SepIndex.keysPerShortIndex
 
 class SepIndex(indices: List[Long]) {
   def keys: List[Int] =

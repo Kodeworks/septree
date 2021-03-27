@@ -19,7 +19,7 @@ object SepTree {
    */
   def indexPoint(
                   point: (Double, Double),
-                  space: (Double, Double),
+                  space: (Double, Double) = (1d, 1d),
                   depth: Int = 1
                 ): SepIndex = {
     val (px, py) = point
@@ -27,6 +27,10 @@ object SepTree {
     assume(0d <= px && 0d <= py && 0d <= sx && 0d <= sy && px <= sx && py <= sy && 0 < depth,
       "point and space must be nonnegative, point must be inside space, depth must be positive")
 
-    ???
+    if (1 == depth) {
+      SepIndex.depthOne
+    } else {
+      SepIndex.depthOne
+    }
   }
 }

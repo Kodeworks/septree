@@ -15,6 +15,8 @@ class SepIndex(indices: List[Long]) {
 }
 
 object SepIndex {
+  val depthOne = new SepIndex(Nil)
+
   /*
   0 means empty key. There are no more non empty keys to the left. Any keys to the right are non-empty.
   1-7 means non-empty key
@@ -23,7 +25,8 @@ object SepIndex {
 
   def apply(sepKeys: Iterable[Int]): SepIndex = {
     assume(sepKeys.forall(sk => 1 <= sk && sk < 8))
-    new SepIndex(sepKeys
+    if (sepKeys.isEmpty) depthOne
+    else new SepIndex(sepKeys
       .grouped(keysPerShortIndex)
       .map(longify)
       .toList)
@@ -36,5 +39,4 @@ object SepIndex {
       .zipWithIndex.map { case (sk, i) =>
       sk.toLong << 3 * i
     }.reduce(_ | _)
-
 }

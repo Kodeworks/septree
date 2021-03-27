@@ -2,18 +2,20 @@ package no.kodeworks.septree
 
 object SepTree {
   /*
-   * Space is an area wrapped in an initial hex like this:
+   * Space is an area wrapped in an initial hex.
+   * It is snapped to the bottom of the hex i case it does not fill the entire height.
+   * Point is within this area.
    *      __________
    *     /          \
-   *    /|          |\
+   *    /| not space|\
    *   / |          | \
-   *  /  |          |  \
+   *  /  |---space--|  \
    * /   |          |   \
-   * \   |          |   /
+   * \   | (p)oint  |   /
    *  \  |          |  /
    *   \ |          | /
    *    \|          |/
-   *     \__________/
+   *     \___space__/
    */
   def indexPoint(
                   point: (Double, Double),
@@ -24,6 +26,7 @@ object SepTree {
     val (sx, sy) = space
     assume(0d <= px && 0d <= py && 0d <= sx && 0d <= sy && px <= sx && py <= sy && 0 < depth,
       "point and space must be nonnegative, point must be inside space, depth must be positive")
+
     ???
   }
 }

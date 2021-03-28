@@ -2,7 +2,7 @@ package no.kodeworks.septree
 
 import no.kodeworks.septree.SepIndex.keysPerShortIndex
 
-class SepIndex(indices: List[Long]) {
+case class SepIndex(indices: List[Long]) {
   def keys: List[Int] =
     indices.flatMap { index =>
       val keys0 = (0 until keysPerShortIndex).map(s => 7 & (index >> 3 * s).toInt)

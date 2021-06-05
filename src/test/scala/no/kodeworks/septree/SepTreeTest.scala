@@ -58,28 +58,29 @@ class SepTreeTest {
   }
 
   @Test
-  def testDepthTwo(): Unit = {
-    val center1 = (-0.2431322695419323*1.6d, 0.6078306738548308*1.6d)
+  def testDepthTwoSurelyInside(): Unit = {
+    val center1 = (-.5d, .7d)
     val index1 = indexPoint(center1, depth = 2)
     assertEquals(SepIndex(1), index1)
 
-//    val center2 = (0.4048306699867311, 0.5144740588304942)
-//    val center3 = (-0.6479629395286634, 0.09335661502433644)
-//    val center4 = (0.0, 0.0)
-//    val center5 = (0.6479629395286634, -0.09335661502433644)
-//    val center6 = (-0.40483066998673145, -0.514474058830494)
-//    val center7 = (0.24313226954193165, -0.607830673854831)
-//    val index2 = indexPoint(center2, depth = 2)
-//    val index3 = indexPoint(center3, depth = 2)
-//    val index4 = indexPoint(center4, depth = 2)
-//    val index5 = indexPoint(center5, depth = 2)
-//    val index6 = indexPoint(center6, depth = 2)
-//    val index7 = indexPoint(center7, depth = 2)
-//    assertEquals(SepIndex(2), index2)
-//    assertEquals(SepIndex(3), index3)
-//    assertEquals(SepIndex(4), index4)
-//    assertEquals(SepIndex(5), index5)
-//    assertEquals(SepIndex(6), index6)
-//    assertEquals(SepIndex(7), index7)
+    val center2 = (.7d, .7d)
+    val index2 = indexPoint(center2, depth = 2)
+    assertEquals(SepIndex(2), index2)
+
+    val center3 = (-.9d, .1d)
+    val index3 = indexPoint(center3, depth = 2)
+    assertEquals(SepIndex(3), index3)
+
+    val center5 = (.9d, -.1d)
+    val index5 = indexPoint(center5, depth = 2)
+    assertEquals(SepIndex(5), index5)
+
+    val center6 = (-.7d, -.7d)
+    val index6 = indexPoint(center6, depth = 2)
+    assertEquals(SepIndex(6), index6)
+
+    val center7 = (.5d, -.7d)
+    val index7 = indexPoint(center7, depth = 2)
+    assertEquals(SepIndex(7), index7)
   }
 }

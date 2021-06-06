@@ -6,10 +6,10 @@ case class SepTree(
                     space: Space,
                     depth: Int
                   ) {
-  def tree(): SepHex = {
+  def hex(): SepHex = {
     val R = calcR(space)
     val r = calcr(R)
-    val center = calcCenter(space)
+    val c = calcCenter(space)
     val corners = Array(
       Point(-.5 * R, r),
       Point(.5 * R, r),
@@ -17,8 +17,8 @@ case class SepTree(
       Point(.5 * R, -r),
       Point(-.5 * R, -r),
       Point(-R, 0d)
-    )
-    SepHex(R, center, 0d, 1, corners)
+    ).map(p => Point(c.x + p.x, c.y + p.y))
+    SepHex(R, c, 0d, 1, corners)
   }
 }
 

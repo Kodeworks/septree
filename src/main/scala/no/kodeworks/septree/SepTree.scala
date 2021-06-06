@@ -6,19 +6,10 @@ case class SepTree(
                     space: Space,
                     depth: Int
                   ) {
-  def hex(): SepHex = {
+  def hex: SepHex = {
     val R = calcR(space)
-    val r = calcr(R)
     val c = calcCenter(space)
-    val corners = Array(
-      Point(-.5 * R, r),
-      Point(.5 * R, r),
-      Point(R, 0d),
-      Point(.5 * R, -r),
-      Point(-.5 * R, -r),
-      Point(-R, 0d)
-    ).map(p => Point(c.x + p.x, c.y + p.y))
-    SepHex(R, c, 0d, 1, corners)
+    SepHex(R, c, acos5div2sqrt7 - piDiv6)
   }
 }
 
@@ -27,11 +18,35 @@ case class SepHex(
                    center: Point,
                    rotation: Double = 0d,
                    level: Int = 1,
-                   corners: Array[Point],
-                   children: Array[SepHex] = Array.empty
+                   index: Int = 7
                  ) {
   override def toString: String =
-    s"SepHex($R,$center,$rotation,$level,${corners.toList},${children.toList})"
+    s"SepHex($R,$center,$rotation,$level,${corners.toList})"
+
+  def corners: Array[Point] =
+    rotations.map { r =>
+      val rot = rotation + r
+      Point(center.x + math.cos(rot) * R, center.y + math.sin(rot) * R)
+    }
+
+  def children: Array[SepHex] = {
+    val subR = R / sqrt7
+    val subS = 2d * calcr(subR)
+    val subRot = rotation + acos5div2sqrt7
+    val subCenterRot = subRot - piDiv6
+    val subLevel = level + 1
+    var subIndex = 0
+    centers.map { calcCenter =>
+      val subCenter = calcCenter(center, subS, subCenterRot)
+      subIndex += 1
+      SepHex(subR, subCenter, subRot, subLevel, subIndex)
+    } ++ Array(SepHex(subR, center, subRot, subLevel))
+  }
+
+  def toList(depth: Int): List[SepHex] =
+    (this :: (
+      if (level < depth) children.toList.flatMap(_.toList(depth))
+      else Nil)).sortBy(_.level)
 }
 
 case class Space(
@@ -47,42 +62,40 @@ case class Point(x: Double, y: Double)
  * r = little radius, R times sine 30 degrees
  * s = little diameter, two times r
  * c = center point
- * c1 - c7 = center points of subhexes 1 - 7
+ * c1 - c7 = center points of subhexes 1 - 7, around the clock from top left, then center
  * baseline = lower horizontal line of hex
  * rot = rotation in radians, compared to when the baseline lies flat on ground
  * corners = viewed from baseline: upper left, upper right, mid right, lower right, lower left, mid left
  */
 object SepTree {
-  val arctan2div5 = math.atan(2d / 5d)
-  val piDiv6 = math.Pi / 6d
-  val piDiv6SubArctan2div5 = piDiv6 - arctan2div5
   val sqrt7 = math.sqrt(7d) // factor of R for each level
+  val acos5div2sqrt7 = math.acos(5d / (2d * sqrt7))
+  val piDiv6 = math.Pi / 6d
+  val todoDeprecated = piDiv6 - acos5div2sqrt7
   val piDiv3 = math.Pi / 3d // 60 deg in rads, angle from hex 5 to hex 2 etc
   val sinPiDiv3 = math.sin(piDiv3)
   // Rotations to the center of each subhex.
   // rot1 = rots(0) etc
   // these are base rotations without the adjustment for 1 level deeper.
-  val rots = Array(
+  val rotations = Array(
     2d * piDiv3,
     piDiv3,
-    3d * piDiv3,
     0d,
-    0d,
+    5d * piDiv3,
     4d * piDiv3,
-    5d * piDiv3
-  ) //.map(_ - piDiv6SubArctan2div5)
+    3d * piDiv3
+  )
 
   val surelyInside = 0.8
   val surelyInside2 = surelyInside * surelyInside
   val surelyOutside = 1.2
   val surelyOutside2 = surelyOutside * surelyOutside
 
-  val centers: Array[(Double, Double, Double, Int) => Array[Double]] = rots.map { r =>
-    (px: Double, py: Double, subS: Double, level: Int) =>
-      val rotLevel = calcCenterRotation(level) + r
-      Array(px + math.cos(rotLevel) * subS, py + math.sin(rotLevel) * subS)
+  val centers: Array[(Point, Double, Double) => Point] = rotations.map { r =>
+    (p: Point, subS: Double, rotLevel: Double) =>
+      val rot = rotLevel + r
+      Point(p.x + math.cos(rot) * subS, p.y + math.sin(rot) * subS)
   }
-  centers(3) = (px: Double, py: Double, _: Double, _: Int) => Array(px, py)
 
   /*
    * 'Space' is an area wrapped in an initial hex.
@@ -129,10 +142,10 @@ object SepTree {
     )
 
   def calcCenterRotation(level: Int) =
-    calcRotation(level) - arctan2div5
+    calcRotation(level) - acos5div2sqrt7
 
   def calcRotation(level: Int) =
-    (level - 1) * piDiv6SubArctan2div5
+    (level - 1) * todoDeprecated
 
   // s = 2*r = sin(pi/3)*d = sin(pi/3)*2*R
   // diminished by 1/sqrt(7) for each level
@@ -204,7 +217,7 @@ object SepTree {
   }
 
   def centerAndDistance2(cx: Double, cy: Double, px: Double, py: Double, subNumber: Int, level: Int, subS: Double) = {
-    val Array(c1x, c1y) = centers(subNumber - 1)(0d, 0d, subS, level)
+    val Point(c1x, c1y) = centers(subNumber - 1)(Point(0d, 0d), subS, calcCenterRotation(level))
     val d1x = c1x - px
     val d1y = c1y - py
     ((c1x, c1y), d1x * d1x + d1y * d1y)

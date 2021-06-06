@@ -4,13 +4,6 @@
 **/target/**
 **~
 deptree.txt
-log
-*.log
-temp/**
-src/test/shell/cookies.txt
 dependency-reduced-pom.xml
-package/resources/*
-node/src/test/shell/cookies.txt
-mci.txt
 .DS_Store
-iiot_mmap*
+graphpaper_with_septree.svg

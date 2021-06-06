@@ -1,5 +1,32 @@
 package no.kodeworks.septree
 
+import SepTree._
+
+case class SepTree(
+                    space: Space,
+                    depth: Int
+                  ) {
+  def tree: SepHex = {
+    ???
+  }
+}
+
+case class Space(
+                  lowerLeft: Point,
+                  upperRight: Point
+                )
+
+case class SepHex(
+                   R: Double,
+                   center: Point,
+                   rotation: Double = 0d,
+                   level: Int = 1,
+                   corners: Array[Point],
+                   children: Array[SepHex] = Array.empty
+                 )
+
+case class Point(x: Double, y: Double)
+
 /**
  * Subhexes are numbered from 1 to 7 and starts in upper left. Then upper right, left, mid, right, lower left, lower right.
  * R = big radius
@@ -7,6 +34,9 @@ package no.kodeworks.septree
  * s = little diameter, two times r
  * c = center point
  * c1 - c7 = center points of subhexes 1 - 7
+ * baseline = lower horizontal line of hex
+ * rot = rotation in radians, compared to when the baseline lies flat on ground
+ * corners = viewed from baseline: upper left, upper right, mid right, lower right, lower left, mid left
  */
 object SepTree {
   val arctan2div5 = math.atan(2d / 5d)
@@ -62,9 +92,9 @@ object SepTree {
    * The center of the space always aligns with the center of the initial wrapping hex.
    */
 
-  def calcR(sx0: Double, sy0: Double, sx1: Double, sy1: Double): Double = {
-    val w = sx1 - sx0
-    val h = sy1 - sy0
+  def calcR(s:Space): Double = {
+    val w = s.upperRight.x - s.lowerLeft.x
+    val h = s.upperRight.y - s.lowerLeft.y
     val maxH = 2d * sinPiDiv3 * w
     if (maxH < h) {
       //height limited
@@ -81,17 +111,21 @@ object SepTree {
     sinPiDiv3 * 2d * R * math.pow(1d / sqrt7, level)
 
   def indexPoint(
-                  point: (Double, Double),
-                  space: ((Double, Double), (Double, Double)) = ((-1d, -1d), (1d, 1d)),
+                  point: Point,
+                  space: Space = Space(Point(-1d, -1d), Point(1d, 1d)),
                   depth: Int = 1,
                   level: Int = 1
                 ): SepIndex = {
-    val (px, py) = point
-    val (s0@(sx0, sy0), s1@(sx1, sy1)) = space
+    val px = point.x
+    val py = point.y
+    val sx0 = space.lowerLeft.x
+    val sy0 = space.lowerLeft.y
+    val sx1 = space.upperRight.x
+    val sy1 = space.upperRight.y
     assume(sx0 <= px && px <= sx1 && sy0 <= py && py <= sy1, "point must be within space")
     assume(sx0 < sx1 && sy0 < sy1, "space must consist of both vertical and horizontal positive distance")
     assume(0 < depth, "depth must be positive")
-    val R = calcR(sx0, sy0, sx1, sy1)
+    val R = calcR(space)
     println(s"px:$px, py:$py")
     if (level == depth) {
       SepIndex.depthOne

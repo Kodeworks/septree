@@ -1,5 +1,7 @@
 package no.kodeworks.septree
 
 object Testy extends App {
-//  println(SepTree.centers.mkString("\n"))
+  val sepTree = SepTree(Space(Point(-1d, -1d), Point(1d, 1d)), 1)
+  val tree = sepTree.tree()
+  println(tree)
 }

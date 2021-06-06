@@ -6,15 +6,21 @@ case class SepTree(
                     space: Space,
                     depth: Int
                   ) {
-  def tree: SepHex = {
-    ???
+  def tree(): SepHex = {
+    val R = calcR(space)
+    val r = calcr(R)
+    val center = calcCenter(space)
+    val corners = Array(
+      Point(-.5 * R, r),
+      Point(.5 * R, r),
+      Point(R, 0d),
+      Point(.5 * R, -r),
+      Point(-.5 * R, -r),
+      Point(-R, 0d)
+    )
+    SepHex(R, center, 0d, 1, corners)
   }
 }
-
-case class Space(
-                  lowerLeft: Point,
-                  upperRight: Point
-                )
 
 case class SepHex(
                    R: Double,
@@ -23,7 +29,15 @@ case class SepHex(
                    level: Int = 1,
                    corners: Array[Point],
                    children: Array[SepHex] = Array.empty
-                 )
+                 ) {
+  override def toString: String =
+    s"SepHex($R,$center,$rotation,$level,${corners.toList},${children.toList})"
+}
+
+case class Space(
+                  lowerLeft: Point,
+                  upperRight: Point
+                )
 
 case class Point(x: Double, y: Double)
 
@@ -65,7 +79,7 @@ object SepTree {
 
   val centers: Array[(Double, Double, Double, Int) => Array[Double]] = rots.map { r =>
     (px: Double, py: Double, subS: Double, level: Int) =>
-      val rotLevel = rotByLevel(level) + r
+      val rotLevel = calcCenterRotation(level) + r
       Array(px + math.cos(rotLevel) * subS, py + math.sin(rotLevel) * subS)
   }
   centers(3) = (px: Double, py: Double, _: Double, _: Int) => Array(px, py)
@@ -92,7 +106,7 @@ object SepTree {
    * The center of the space always aligns with the center of the initial wrapping hex.
    */
 
-  def calcR(s:Space): Double = {
+  def calcR(s: Space): Double = {
     val w = s.upperRight.x - s.lowerLeft.x
     val h = s.upperRight.y - s.lowerLeft.y
     val maxH = 2d * sinPiDiv3 * w
@@ -104,6 +118,21 @@ object SepTree {
       w
     }
   }
+
+  def calcr(R: Double): Double =
+    sinPiDiv3 * R
+
+  def calcCenter(s: Space) =
+    Point(
+      (s.lowerLeft.x + s.upperRight.x) / 2d,
+      (s.lowerLeft.y + s.upperRight.y) / 2d
+    )
+
+  def calcCenterRotation(level: Int) =
+    calcRotation(level) - arctan2div5
+
+  def calcRotation(level: Int) =
+    (level - 1) * piDiv6SubArctan2div5
 
   // s = 2*r = sin(pi/3)*d = sin(pi/3)*2*R
   // diminished by 1/sqrt(7) for each level
@@ -130,8 +159,7 @@ object SepTree {
     if (level == depth) {
       SepIndex.depthOne
     } else {
-      val cx = (sx0 + sx1) / 2d
-      val cy = (sy0 + sy1) / 2d
+      val Point(cx, cy) = calcCenter(space)
       val (_, d4) = centerAndDistance2(cx, cy, px, py, 4, level, 0d)
       val surelyInside2SubHex = surelyInside2 * R / sqrt7
       val surelyOutside2SubHex = surelyOutside2 * R / sqrt7
@@ -181,9 +209,6 @@ object SepTree {
     val d1y = c1y - py
     ((c1x, c1y), d1x * d1x + d1y * d1y)
   }
-
-  def rotByLevel(level: Int) =
-    (level - 1) * piDiv6SubArctan2div5 - arctan2div5
 
   def normalizePlusMinus1(x: Double, min: Double, max: Double): Double =
     2d * (x - min) / (max - min) - 1d

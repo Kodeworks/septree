@@ -9,7 +9,7 @@ case class SepTree(
   def hex: SepHex = {
     val R = calcR(space)
     val c = calcCenter(space)
-    SepHex(R, c, acos5div2sqrt7 - piDiv6)
+    SepHex(R, c)
   }
 }
 
@@ -29,7 +29,7 @@ case class SepHex(
       Point(center.x + math.cos(rot) * R, center.y + math.sin(rot) * R)
     }
 
-  def children: Array[SepHex] = {
+  def subHexes: Array[SepHex] = {
     val subR = R / sqrt7
     val subS = 2d * calcr(subR)
     val subRot = rotation + acos5div2sqrt7
@@ -45,8 +45,17 @@ case class SepHex(
 
   def toList(depth: Int): List[SepHex] =
     (this :: (
-      if (level < depth) children.toList.flatMap(_.toList(depth))
-      else Nil)).sortBy(_.level)
+      if (level < depth) subHexes.toList.flatMap(_.toList(depth)).sortBy(_.level)
+      else Nil))
+
+  def select(sel: SepSelector): List[SepHex] =
+    if (index == sel.index) {
+      var i = -1
+      (this :: subHexes.toList.flatMap { sh =>
+        i += 1
+        sh.select(sel.subSelectors(i))
+      }).sortBy(_.level)
+    } else Nil
 }
 
 case class Space(

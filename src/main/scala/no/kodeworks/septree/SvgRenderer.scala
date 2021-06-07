@@ -17,7 +17,30 @@ object SvgRenderer extends App {
     val baseLineWidth = math.max(minBaseLineWidth, sepTree.depth)
     var curLevel = 0
 
-    val hexPaths = hex.toList(sepTree.depth).flatMap { sh =>
+    //    val hexes = hex.toList(sepTree.depth)
+    val hexes = hex.select(
+      SepSelector(7,
+        SepSelector(3,
+          SepSelector(6,
+            SepSelector(2),
+            SepSelector(3,
+              SepSelector(1),
+              SepSelector(7,
+                SepSelector(4,
+                  SepSelector(5),
+                  SepSelector(7)
+                ),
+                SepSelector(7)
+              )
+            )
+          ),
+          SepSelector(7)
+        ),
+        SepSelector(7)
+      )
+    )
+
+    val hexPaths = hexes.flatMap { sh =>
       val maybeStroke = if (curLevel != sh.level) {
         val stroke = baseLineWidth - curLevel
         val maybeEndStroke = if (curLevel != 0) List("</g>") else Nil
@@ -38,6 +61,6 @@ object SvgRenderer extends App {
     (rect :: hexPaths).mkString("\n")
   }
 
-  val sepTree = SepTree(Space(Point(5750d, 10100d), Point(15250, 19600d)), 5)
+  val sepTree = SepTree(Space(Point(5750d, 10100d), Point(15250, 19600d)), 7)
   renderToFile(sepTree, 29702d -)
 }

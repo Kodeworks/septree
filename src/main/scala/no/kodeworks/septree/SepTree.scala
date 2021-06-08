@@ -9,44 +9,63 @@ case class SepTree(
   def hex: SepHex = {
     val R = calcR(space)
     val c = calcCenter(space)
-    SepHex(R, c)
+    val lis = levelInfos(R, depth)
+    SepHex(lis.head, lis, c)
+  }
+
+  def indexPoint(p: Point): SepIndex = {
+    assume(space.lowerLeft.x <= p.x &&
+      space.lowerLeft.y <= p.y &&
+      p.x <= space.upperRight.x &&
+      p.y <= space.upperRight.y, "point must be contained in space")
+    hex.indexPoint(p)
   }
 }
 
 case class SepHex(
-                   R: Double,
+                   levelInfo: SepLevelInfo,
+                   levelInfos: Array[SepLevelInfo],
                    center: Point,
-                   rotation: Double = 0d,
-                   level: Int = 1,
                    index: Int = 7
                  ) {
+
+  import levelInfo._
+
+  var corners0: Array[Point] = _
+  var subHexes0: Array[SepHex] = _
+
+  def depth: Int = levelInfos.size
+
   override def toString: String =
     s"SepHex($R,$center,$rotation,$level,${corners.toList})"
 
-  def corners: Array[Point] =
-    rotations.map { r =>
-      val rot = rotation + r
-      Point(center.x + math.cos(rot) * R, center.y + math.sin(rot) * R)
-    }
+  def corners: Array[Point] = {
+    if (null == corners0)
+      corners0 = rotations.map { r =>
+        val rot = rotation + r
+        Point(center.x + math.cos(rot) * R, center.y + math.sin(rot) * R)
+      }
+    corners0
+  }
 
   def subHexes: Array[SepHex] = {
-    val subR = R / sqrt7
-    val subS = 2d * calcr(subR)
-    val subRot = rotation + acos5div2sqrt7
-    val subCenterRot = subRot - piDiv6
-    val subLevel = level + 1
-    var subIndex = 0
-    centers.map { calcCenter =>
-      val subCenter = calcCenter(center, subS, subCenterRot)
-      subIndex += 1
-      SepHex(subR, subCenter, subRot, subLevel, subIndex)
-    } ++ Array(SepHex(subR, center, subRot, subLevel))
+    if (null == subHexes0)
+      subHexes0 = {
+        val li = levelInfos(level)
+        var subIndex = 0
+        centers.map { calcCenter =>
+          val subCenter = calcCenter(center, li.s, li.rotation - piDiv6)
+          subIndex += 1
+          SepHex(li, levelInfos, subCenter, subIndex)
+        } ++ Array(SepHex(li, levelInfos, center))
+      }
+    subHexes0
   }
 
   def toList(depth: Int): List[SepHex] =
-    (this :: (
-      if (level < depth) subHexes.toList.flatMap(_.toList(depth)).sortBy(_.level)
-      else Nil))
+    this :: (
+      if (level < depth) subHexes.toList.flatMap(_.toList(depth)).sortBy(_.levelInfo.level)
+      else Nil)
 
   def select(sel: SepSelector): List[SepHex] =
     if (index == sel.index) {
@@ -54,9 +73,43 @@ case class SepHex(
       (this :: subHexes.toList.flatMap { sh =>
         i += 1
         sh.select(sel.subSelectors(i))
-      }).sortBy(_.level)
+      }).sortBy(_.levelInfo.level)
     } else Nil
+
+  def indexPoint(p: Point): SepIndex = {
+    if(level == depth) {
+      //TODO think
+    }
+    val List((s0, d0), (s1, d1), (s2, d2)) = shortestThreeDistanceSquareds(p)
+    val surelyInside2Subhex = surelyInside2 * R / sqrt7
+    val surelyOutside2Subhex = surelyOutside2 * R / sqrt7
+    if (d0 < surelyInside2Subhex) {
+      SepIndex(s0.index :: s0.indexPoint(p).keys)
+    } else if (d1 < surelyInside2Subhex) {
+      SepIndex(s1.index :: s1.indexPoint(p).keys)
+    } else if (d2 < surelyInside2Subhex) {
+      SepIndex(s1.index :: s1.indexPoint(p).keys)
+    }
+    else throw new RuntimeException("not impl, not surely inside")
+  }
+
+  //TODO distances can be severely optimized.
+  def shortestThreeDistanceSquareds(p: Point): List[(SepHex, Double)] = {
+    val distanceSquareds = subHexes.map { sh =>
+      val x = p.x - sh.center.x
+      val y = p.y - sh.center.y
+      (sh, x * x + y * y)
+    }
+    distanceSquareds.sortInPlaceBy(_._2).take(3).toList
+  }
 }
+
+case class SepLevelInfo(
+                         level: Int,
+                         R: Double,
+                         s: Double,
+                         rotation: Double
+                       )
 
 case class Space(
                   lowerLeft: Point,
@@ -83,6 +136,10 @@ object SepTree {
   val todoDeprecated = piDiv6 - acos5div2sqrt7
   val piDiv3 = math.Pi / 3d // 60 deg in rads, angle from hex 5 to hex 2 etc
   val sinPiDiv3 = math.sin(piDiv3)
+  val surelyInside = 0.8
+  val surelyInside2 = surelyInside * surelyInside
+  val surelyOutside = 1.2
+  val surelyOutside2 = surelyOutside * surelyOutside
   // Rotations to the center of each subhex.
   // rot1 = rots(0) etc
   // these are base rotations without the adjustment for 1 level deeper.
@@ -94,17 +151,20 @@ object SepTree {
     4d * piDiv3,
     3d * piDiv3
   )
-
-  val surelyInside = 0.8
-  val surelyInside2 = surelyInside * surelyInside
-  val surelyOutside = 1.2
-  val surelyOutside2 = surelyOutside * surelyOutside
-
   val centers: Array[(Point, Double, Double) => Point] = rotations.map { r =>
     (p: Point, subS: Double, rotLevel: Double) =>
       val rot = rotLevel + r
       Point(p.x + math.cos(rot) * subS, p.y + math.sin(rot) * subS)
   }
+
+  def levelInfos(R: Double, depth: Int) =
+    (1 to depth).map { level =>
+      val levelD = level.toDouble
+      val subR = R * math.pow(1d / sqrt7, levelD - 1d)
+      val subs = 2d * calcr(subR)
+      val subRot = (levelD - 1d) * acos5div2sqrt7
+      SepLevelInfo(level, subR, subs, subRot)
+    }.toArray
 
   /*
    * 'Space' is an area wrapped in an initial hex.

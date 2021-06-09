@@ -19,6 +19,7 @@ case class SepTree(
       p.x <= space.upperRight.x &&
       p.y <= space.upperRight.y, "point must be contained in space")
     hex.indexPoint(p)
+    ???
   }
 }
 
@@ -76,21 +77,30 @@ case class SepHex(
       }).sortBy(_.levelInfo.level)
     } else Nil
 
-  def indexPoint(p: Point): SepIndex = {
-    if(level == depth) {
-      //TODO think
-    }
+  //first make it work, then make it optimal.
+  def indexPoint(p: Point): Option[SepIndex] = {
     val List((s0, d0), (s1, d1), (s2, d2)) = shortestThreeDistanceSquareds(p)
     val surelyInside2Subhex = surelyInside2 * R / sqrt7
-    val surelyOutside2Subhex = surelyOutside2 * R / sqrt7
-    if (d0 < surelyInside2Subhex) {
-      SepIndex(s0.index :: s0.indexPoint(p).keys)
-    } else if (d1 < surelyInside2Subhex) {
-      SepIndex(s1.index :: s1.indexPoint(p).keys)
-    } else if (d2 < surelyInside2Subhex) {
-      SepIndex(s1.index :: s1.indexPoint(p).keys)
+    //    val surelyOutside2Subhex = surelyOutside2 * R /
+    val surelyInsideSubHex =
+      if (d0 < surelyInside2Subhex) s0
+      else if (d1 < surelyInside2Subhex) s1
+      else if (d2 < surelyInside2Subhex) s2
+      //      SepIndex(s0.index :: s0.indexPoint(p).keys)
+      //      SepIndex(s1.index :: s1.indexPoint(p).keys)
+      //      SepIndex(s1.index :: s1.indexPoint(p).keys)
+      else null
+
+    if (null != surelyInsideSubHex) {
+      if (level == depth - 1) {
+        //check the actual bounds of the hex
+        exactlyInsideThisLevel(p)
+      } else {
+        SepIndex(s0.index :: s0.indexPoint(p).get.keys)
+      }
     }
-    else throw new RuntimeException("not impl, not surely inside")
+
+    ???
   }
 
   //TODO distances can be severely optimized.
@@ -102,13 +112,47 @@ case class SepHex(
     }
     distanceSquareds.sortInPlaceBy(_._2).take(3).toList
   }
+
+  //TODO test
+  def exactlyInsideThisLevel(p: Point): Boolean = {
+    //move to origo
+    val tx = p.x - center.x
+    val ty = p.y - center.y
+    //guaranteed inside outside test
+    val t2 = tx * tx + ty * ty
+    if (t2 < levelInfo.r * levelInfo.r) true
+    else if (levelInfo.R * levelInfo.R < t2) false
+    else {
+      //rotate back to baseline
+      val rx = tx * levelInfo.rotationCosine - ty * levelInfo.rotationSine
+      val ry = tx * levelInfo.rotationSine + ty * levelInfo.rotationCosine
+      //scale to unit
+      val sx = rx / R
+      val sy = ry / R
+      //skew
+      val dx = sx * twoDivSqrt3
+      if (1d < dx || dx < -1d) false
+      else {
+        val dy =.5d * dx + sy
+        if (1d < dy || dy < -1d) false
+        else {
+          val d = dx - dy
+          if (1d < d || d < -1d) false
+          else true
+        }
+      }
+    }
+  }
 }
 
 case class SepLevelInfo(
                          level: Int,
                          R: Double,
+                         r: Double,
                          s: Double,
-                         rotation: Double
+                         rotation: Double,
+                         rotationCosine: Double,
+                         rotationSine: Double
                        )
 
 case class Space(
@@ -130,6 +174,7 @@ case class Point(x: Double, y: Double)
  * corners = viewed from baseline: upper left, upper right, mid right, lower right, lower left, mid left
  */
 object SepTree {
+  val twoDivSqrt3 = 2d / math.sqrt(3d)
   val sqrt7 = math.sqrt(7d) // factor of R for each level
   val acos5div2sqrt7 = math.acos(5d / (2d * sqrt7))
   val piDiv6 = math.Pi / 6d
@@ -161,9 +206,12 @@ object SepTree {
     (1 to depth).map { level =>
       val levelD = level.toDouble
       val subR = R * math.pow(1d / sqrt7, levelD - 1d)
-      val subs = 2d * calcr(subR)
+      val subr = calcr(subR)
+      val subs = 2d * subr
       val subRot = (levelD - 1d) * acos5div2sqrt7
-      SepLevelInfo(level, subR, subs, subRot)
+      val subRotCos = math.cos(subRot)
+      val subRotSin = math.sin(subRot)
+      SepLevelInfo(level, subR, subr, subs, subRot, subRotCos, subRotSin)
     }.toArray
 
   /*
@@ -297,4 +345,17 @@ object SepTree {
 
   def denormalizePlusMinus1(x: Double, min: Double, max: Double): Double =
     (max - min) * (x + 1d) / 2d + min
+
+  // returns true if point is left of line. returns false otherwise
+  def leftOfLine(p: Point, a: Point, b: Point) =
+    0 < (b.x - a.x) * (p.y - a.y) - (b.y - a.y) * (p.x - a.x)
+
+  //todo investigate shear mapped rotated and scaled point instead
+  //  def insideHex(p: Point, corners: Array[Point]) = {
+  //    val Array(a, b, c, d, e, f) = corners
+  //    val ad = leftOfLine(p, a, d)
+  //    val be = leftOfLine(p, b, e)
+  //    val cf = leftOfLine(p, c, f)
+  //    if(ad && be && cf && leftOfLine)
+  //  }
 }

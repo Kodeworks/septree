@@ -90,4 +90,12 @@ class SepTreeTest {
     val index1 = indexPoint(center1, depth = 2)
     assertEquals(SepIndex(1), index1)
   }
+
+  @Test
+  def testLeftOfLine(): Unit = {
+    assertTrue(SepTree.leftOfLine(Point(3, 3), Point(1, 1), Point(5, 3)))
+    assertTrue(SepTree.leftOfLine(Point(2, 3), Point(1, 1), Point(5, 5)))
+    assertFalse(SepTree.leftOfLine(Point(3, 3), Point(1, 1), Point(5, 5)))
+    assertFalse(SepTree.leftOfLine(Point(3, 2), Point(1, 1), Point(5, 5)))
+  }
 }

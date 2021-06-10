@@ -32,8 +32,9 @@ class SepTreeTest {
 
   @Test
   def testDepthOne(): Unit = {
-    val min = indexPoint(Point(0d, 0d))
-    val max = indexPoint(Point(1d, 1d))
+    val tree = SepTree(Space(Point(-1d, -1d), Point(1d, 1d)), 1)
+    val min = tree.indexPoint(Point(0d, 0d))
+    val max = tree.indexPoint(Point(1d, 1d))
     assertEquals(SepIndex.depthOne, min)
     assertEquals(SepIndex.depthOne, max)
   }
@@ -59,36 +60,39 @@ class SepTreeTest {
 
   @Test
   def testDepthTwoSurelyInside(): Unit = {
+    val tree = SepTree(Space(Point(-1d, -1d), Point(1d, 1d)), 2)
+
     val center1 = Point(-.5d, .7d)
-    val index1 = indexPoint(center1, depth = 2)
-    assertEquals(SepIndex(1), index1)
+    val index1 = tree.indexPoint(center1)
+    assertEquals(SepIndex(7, 1), index1)
 
     val center2 = Point(.7d, .7d)
-    val index2 = indexPoint(center2, depth = 2)
-    assertEquals(SepIndex(2), index2)
+    val index2 = tree.indexPoint(center2)
+    assertEquals(SepIndex(7, 2), index2)
 
     val center3 = Point(-.9d, .1d)
-    val index3 = indexPoint(center3, depth = 2)
-    assertEquals(SepIndex(3), index3)
+    val index3 = tree.indexPoint(center3)
+    assertEquals(SepIndex(7, 6), index3)
 
     val center5 = Point(.9d, -.1d)
-    val index5 = indexPoint(center5, depth = 2)
-    assertEquals(SepIndex(5), index5)
+    val index5 = tree.indexPoint(center5)
+    assertEquals(SepIndex(7, 3), index5)
 
     val center6 = Point(-.7d, -.7d)
-    val index6 = indexPoint(center6, depth = 2)
-    assertEquals(SepIndex(6), index6)
+    val index6 = tree.indexPoint(center6)
+    assertEquals(SepIndex(7, 5), index6)
 
     val center7 = Point(.5d, -.7d)
-    val index7 = indexPoint(center7, depth = 2)
-    assertEquals(SepIndex(7), index7)
+    val index7 = tree.indexPoint(center7)
+    assertEquals(SepIndex(7, 4), index7)
   }
 
   @Test
   def testDepthTwoMaybeInside(): Unit = {
+    val tree = SepTree(Space(Point(-1d, -1d), Point(1d, 1d)), 2)
     val center1 = Point(-.5d, .7d)
-    val index1 = indexPoint(center1, depth = 2)
-    assertEquals(SepIndex(1), index1)
+    val index1 = tree.indexPoint(center1)
+    assertEquals(SepIndex(7, 1), index1)
   }
 
   @Test
@@ -103,23 +107,29 @@ class SepTreeTest {
   def testExactlyInsideThisLevel: Unit = {
     val tree = SepTree(Space(Point(100, 100), Point(500, 500)), 3)
     val hex = tree.hex
+    assertCornersWithMarginInside(hex)
+    hex.subHexes.foreach(assertCornersWithMarginInside(_))
+  }
+
+  def assertCornersWithMarginInside(hex: SepHex, margin: Double = 0.000000000001) = {
     val Array(a, b, c, d, e, f) = hex.corners
     val justInsideCorners = List(
-      a.x + 0.1,
-      a.y - 0.1,
-      b.x - 0.1,
-      b.y - 0.1,
-      c.x - 0.1,
+      a.x + margin,
+      a.y - margin,
+      b.x - margin,
+      b.y - margin,
+      c.x - margin,
       c.y,
-      d.x - 0.1,
-      d.y + 0.1,
-      e.x + 0.1,
-      e.y + 0.1,
-      f.x + 0.1,
+      d.x - margin,
+      d.y + margin,
+      e.x + margin,
+      e.y + margin,
+      f.x + margin,
       f.y
     ).grouped(2).map { case List(x, y) => Point(x, y) }.toArray
-    justInsideCorners.zipWithIndex.foreach { case (corner, i) =>
-      assertTrue(s"Point ${i + 1} not inside", hex.exactlyInsideThisLevel(corner))
+    val insides = justInsideCorners.map(hex.exactlyInsideThisLevel)
+    insides.zipWithIndex.foreach { case (inside, i) =>
+      assertTrue(s"Corner ${i + 1} not inside", inside)
     }
   }
 }

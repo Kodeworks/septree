@@ -15,11 +15,11 @@ case class SepIndex(indices: List[Long]) {
 }
 
 object SepIndex {
-  val depthOne = new SepIndex(Nil)
+  val depthOne = new SepIndex(List(longify(List(7))))
 
   /*
   0 means empty key. There are no more non empty keys to the left. Any keys to the right are non-empty.
-  1-7 means non-empty key
+  1-7 means non-empty key. The top hex is always index 7.
    */
   val keysPerShortIndex = 64 / 3 //there are 21 keys per long (63 bits)
 

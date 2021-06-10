@@ -18,8 +18,7 @@ case class SepTree(
       space.lowerLeft.y <= p.y &&
       p.x <= space.upperRight.x &&
       p.y <= space.upperRight.y, "point must be contained in space")
-    hex.indexPoint(p)
-    ???
+    hex.indexPoint(p).get
   }
 }
 
@@ -79,29 +78,33 @@ case class SepHex(
 
   //first make it work, then make it optimal.
   def indexPoint(p: Point): Option[SepIndex] = {
-    val List((s0, d0), (s1, d1), (s2, d2)) = shortestThreeDistanceSquareds(p)
-    val surelyInside2Subhex = surelyInside2 * R / sqrt7
-    //    val surelyOutside2Subhex = surelyOutside2 * R /
-    val surelyInsideSubHex =
-      if (d0 < surelyInside2Subhex) s0
-      else if (d1 < surelyInside2Subhex) s1
-      else if (d2 < surelyInside2Subhex) s2
-      //      SepIndex(s0.index :: s0.indexPoint(p).keys)
-      //      SepIndex(s1.index :: s1.indexPoint(p).keys)
-      //      SepIndex(s1.index :: s1.indexPoint(p).keys)
-      else null
+    if (depth == level) {
+      if (exactlyInsideThisLevel(p))
+        Some(SepIndex(index))
+      else None
+    } else {
+      val List((s0, d0), (s1, d1), (s2, d2)) = shortestThreeDistanceSquareds(p)
+      val subLevel = levelInfos(level)
+      val surelyInsideHex =
+        if (d0 < subLevel.surelyInsideSquared) s0
+        else if (d1 < subLevel.surelyInsideSquared) s1
+        else if (d2 < subLevel.surelyInsideSquared) s2
+        else null
 
-    if (null != surelyInsideSubHex) {
-      if (level == depth - 1) {
-        //check the actual bounds of the hex
-        exactlyInsideThisLevel(p)
+      if (null != surelyInsideHex) {
+        Some(SepIndex(index :: surelyInsideHex.indexPoint(p).get.keys))
       } else {
-        SepIndex(s0.index :: s0.indexPoint(p).get.keys)
+        indexUnlessSurelyOutside(s0, p, d0, subLevel.surelyOutsideSquared)
+          .orElse(indexUnlessSurelyOutside(s1, p, d1, subLevel.surelyOutsideSquared))
+          .orElse(indexUnlessSurelyOutside(s2, p, d2, subLevel.surelyOutsideSquared))
       }
     }
-
-    ???
   }
+
+  def indexUnlessSurelyOutside(hex: SepHex, p: Point, distanceSquared: Double, surelyOutsideSquared: Double) =
+    if (distanceSquared < surelyOutsideSquared) {
+      hex.indexPoint(p)
+    } else None
 
   //TODO distances can be severely optimized.
   def shortestThreeDistanceSquareds(p: Point): List[(SepHex, Double)] = {
@@ -113,26 +116,26 @@ case class SepHex(
     distanceSquareds.sortInPlaceBy(_._2).take(3).toList
   }
 
-  //TODO test
   def exactlyInsideThisLevel(p: Point): Boolean = {
     //move to origo
     val tx = p.x - center.x
     val ty = p.y - center.y
     //guaranteed inside outside test
     val t2 = tx * tx + ty * ty
-    if (t2 < levelInfo.r * levelInfo.r) true
-    else if (levelInfo.R * levelInfo.R < t2) false
+    if (t2 < r * r) true
+    else if (R * R < t2) false
     else {
       //rotate back to baseline
-      val rx = tx * levelInfo.rotationCosine - ty * levelInfo.rotationSine
-      val ry = tx * levelInfo.rotationSine + ty * levelInfo.rotationCosine
+      val rx = tx * rotationCosine + ty * rotationSine
+      val ry = -tx * rotationSine + ty * rotationCosine
       //scale to unit
       val sx = rx / R
       val sy = ry / R
-      //skew
+      //stretch y and check
       val dy = sy * twoDivSqrt3
       if (1d < dy || dy < -1d) false
       else {
+        //skew x and check
         val dx =.5d * dy + sx
         if (1d < dx || dx < -1d) false
         else {
@@ -152,7 +155,9 @@ case class SepLevelInfo(
                          s: Double,
                          rotation: Double,
                          rotationCosine: Double,
-                         rotationSine: Double
+                         rotationSine: Double,
+                         surelyInsideSquared: Double,
+                         surelyOutsideSquared: Double
                        )
 
 case class Space(
@@ -182,9 +187,9 @@ object SepTree {
   val piDiv3 = math.Pi / 3d // 60 deg in rads, angle from hex 5 to hex 2 etc
   val sinPiDiv3 = math.sin(piDiv3)
   val surelyInside = 0.8
-  val surelyInside2 = surelyInside * surelyInside
+  val surelyInsideSquared = surelyInside * surelyInside
   val surelyOutside = 1.2
-  val surelyOutside2 = surelyOutside * surelyOutside
+  val surelyOutsideSquared = surelyOutside * surelyOutside
   // Rotations to the center of each subhex.
   // rot1 = rots(0) etc
   // these are base rotations without the adjustment for 1 level deeper.
@@ -202,7 +207,7 @@ object SepTree {
       Point(p.x + math.cos(rot) * subS, p.y + math.sin(rot) * subS)
   }
 
-  def levelInfos(R: Double, depth: Int) =
+  def levelInfos(R: Double, depth: Int): Array[SepLevelInfo] =
     (1 to depth).map { level =>
       val levelD = level.toDouble
       val subR = R * math.pow(1d / sqrt7, levelD - 1d)
@@ -211,7 +216,7 @@ object SepTree {
       val subRot = (levelD - 1d) * acos5div2sqrt7
       val subRotCos = math.cos(subRot)
       val subRotSin = math.sin(subRot)
-      SepLevelInfo(level, subR, subr, subs, subRot, subRotCos, subRotSin)
+      SepLevelInfo(level, subR, subr, subs, subRot, subRotCos, subRotSin, surelyInsideSquared * R, surelyOutsideSquared * R)
     }.toArray
 
   /*
@@ -291,8 +296,8 @@ object SepTree {
     } else {
       val Point(cx, cy) = calcCenter(space)
       val (_, d4) = centerAndDistance2(cx, cy, px, py, 4, level, 0d)
-      val surelyInside2SubHex = surelyInside2 * R / sqrt7
-      val surelyOutside2SubHex = surelyOutside2 * R / sqrt7
+      val surelyInside2SubHex = surelyInsideSquared * R / sqrt7
+      val surelyOutside2SubHex = surelyOutsideSquared * R / sqrt7
       if (d4 <= surelyInside2SubHex) {
         SepIndex(4 :: indexPoint(point, space, depth, level + 1).keys)
       } else {

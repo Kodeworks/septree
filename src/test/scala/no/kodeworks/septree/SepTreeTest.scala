@@ -98,4 +98,28 @@ class SepTreeTest {
     assertFalse(SepTree.leftOfLine(Point(3, 3), Point(1, 1), Point(5, 5)))
     assertFalse(SepTree.leftOfLine(Point(3, 2), Point(1, 1), Point(5, 5)))
   }
+
+  @Test
+  def testExactlyInsideThisLevel: Unit = {
+    val tree = SepTree(Space(Point(100, 100), Point(500, 500)), 3)
+    val hex = tree.hex
+    val Array(a, b, c, d, e, f) = hex.corners
+    val justInsideCorners = List(
+      a.x + 0.1,
+      a.y - 0.1,
+      b.x - 0.1,
+      b.y - 0.1,
+      c.x - 0.1,
+      c.y,
+      d.x - 0.1,
+      d.y + 0.1,
+      e.x + 0.1,
+      e.y + 0.1,
+      f.x + 0.1,
+      f.y
+    ).grouped(2).map { case List(x, y) => Point(x, y) }.toArray
+    justInsideCorners.zipWithIndex.foreach { case (corner, i) =>
+      assertTrue(s"Point ${i + 1} not inside", hex.exactlyInsideThisLevel(corner))
+    }
+  }
 }

@@ -32,8 +32,8 @@ case class SepHex(
 
   import levelInfo._
 
-  var corners0: Array[Point] = _
-  var subHexes0: Array[SepHex] = _
+  private[this] var corners0: Array[Point] = _
+  private[this] var subHexes0: Array[SepHex] = _
 
   def depth: Int = levelInfos.size
 
@@ -130,13 +130,13 @@ case class SepHex(
       val sx = rx / R
       val sy = ry / R
       //skew
-      val dx = sx * twoDivSqrt3
-      if (1d < dx || dx < -1d) false
+      val dy = sy * twoDivSqrt3
+      if (1d < dy || dy < -1d) false
       else {
-        val dy =.5d * dx + sy
-        if (1d < dy || dy < -1d) false
+        val dx =.5d * dy + sx
+        if (1d < dx || dx < -1d) false
         else {
-          val d = dx - dy
+          val d = dy - dx
           if (1d < d || d < -1d) false
           else true
         }

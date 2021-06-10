@@ -6,6 +6,8 @@ case class SepTree(
                     space: Space,
                     depth: Int
                   ) {
+  assume(0 < depth, "depth must be positive")
+
   def hex: SepHex = {
     val R = calcR(space)
     val c = calcCenter(space)
@@ -163,7 +165,9 @@ case class SepLevelInfo(
 case class Space(
                   lowerLeft: Point,
                   upperRight: Point
-                )
+                ) {
+  assume(lowerLeft.x < upperRight.x && lowerLeft.y < upperRight.y, "Space must be unwarped and nonempty")
+}
 
 case class Point(x: Double, y: Double)
 
@@ -273,83 +277,6 @@ object SepTree {
   // diminished by 1/sqrt(7) for each level
   def sByLevel(R: Double, level: Int) =
     sinPiDiv3 * 2d * R * math.pow(1d / sqrt7, level)
-
-  def indexPoint(
-                  point: Point,
-                  space: Space = Space(Point(-1d, -1d), Point(1d, 1d)),
-                  depth: Int = 1,
-                  level: Int = 1
-                ): SepIndex = {
-    val px = point.x
-    val py = point.y
-    val sx0 = space.lowerLeft.x
-    val sy0 = space.lowerLeft.y
-    val sx1 = space.upperRight.x
-    val sy1 = space.upperRight.y
-    assume(sx0 <= px && px <= sx1 && sy0 <= py && py <= sy1, "point must be within space")
-    assume(sx0 < sx1 && sy0 < sy1, "space must consist of both vertical and horizontal positive distance")
-    assume(0 < depth, "depth must be positive")
-    val R = calcR(space)
-    println(s"px:$px, py:$py")
-    if (level == depth) {
-      SepIndex.depthOne
-    } else {
-      val Point(cx, cy) = calcCenter(space)
-      val (_, d4) = centerAndDistance2(cx, cy, px, py, 4, level, 0d)
-      val surelyInside2SubHex = surelyInsideSquared * R / sqrt7
-      val surelyOutside2SubHex = surelyOutsideSquared * R / sqrt7
-      if (d4 <= surelyInside2SubHex) {
-        SepIndex(4 :: indexPoint(point, space, depth, level + 1).keys)
-      } else {
-        // (px: Double, py: Double, s: Double, level: Double)
-        val subS = 2d * sinPiDiv3 * R / sqrt7
-        val ((c1x, c1y), d1) = centerAndDistance2(cx, cy, px, py, 1, level, subS)
-        if (d1 < surelyInside2SubHex) {
-          SepIndex(1 :: indexPoint(point, space, depth, level + 1).keys)
-        } else {
-          val ((c2x, c2y), d2) = centerAndDistance2(cx, cy, px, py, 2, level, subS)
-          if (d2 < surelyInside2SubHex) {
-            SepIndex(2 :: indexPoint(point, space, depth, level + 1).keys)
-          } else {
-            val ((c3x, c3y), d3) = centerAndDistance2(cx, cy, px, py, 3, level, subS)
-            if (d3 < surelyInside2SubHex) {
-              SepIndex(3 :: indexPoint(point, space, depth, level + 1).keys)
-            } else {
-              val ((c5x, c5y), d5) = centerAndDistance2(cx, cy, px, py, 5, level, subS)
-              if (d5 < surelyInside2SubHex) {
-                SepIndex(5 :: indexPoint(point, space, depth, level + 1).keys)
-              } else {
-                val ((c6x, c6y), d6) = centerAndDistance2(cx, cy, px, py, 6, level, subS)
-                if (d6 < surelyInside2SubHex) {
-                  SepIndex(6 :: indexPoint(point, space, depth, level + 1).keys)
-                } else {
-                  val ((c7x, c7y), d7) = centerAndDistance2(cx, cy, px, py, 7, level, subS)
-                  if (d7 < surelyInside2SubHex) {
-                    SepIndex(7 :: indexPoint(point, space, depth, level + 1).keys)
-                  } else {
-                    SepIndex.depthOne
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-
-  def centerAndDistance2(cx: Double, cy: Double, px: Double, py: Double, subNumber: Int, level: Int, subS: Double) = {
-    val Point(c1x, c1y) = centers(subNumber - 1)(Point(0d, 0d), subS, calcCenterRotation(level))
-    val d1x = c1x - px
-    val d1y = c1y - py
-    ((c1x, c1y), d1x * d1x + d1y * d1y)
-  }
-
-  def normalizePlusMinus1(x: Double, min: Double, max: Double): Double =
-    2d * (x - min) / (max - min) - 1d
-
-  def denormalizePlusMinus1(x: Double, min: Double, max: Double): Double =
-    (max - min) * (x + 1d) / 2d + min
 
   // returns true if point is left of line. returns false otherwise
   def leftOfLine(p: Point, a: Point, b: Point) =

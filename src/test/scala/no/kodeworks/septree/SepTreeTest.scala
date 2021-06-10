@@ -7,27 +7,31 @@ import org.junit.Test
 class SepTreeTest {
   @Test(expected = classOf[AssertionError])
   def testBoundsPx(): Unit = {
-    indexPoint(Point(-2d, -1d))
+    SepTree(Space(Point(-1d, -1d), Point(1d, 1d)), 1)
+      .indexPoint(Point(-2d, -1d))
   }
 
   @Test(expected = classOf[AssertionError])
   def testBoundsPy(): Unit = {
-    indexPoint(Point(-1d, -2d))
+    SepTree(Space(Point(-1d, -1d), Point(1d, 1d)), 1)
+      .indexPoint(Point(-1d, -2d))
   }
 
   @Test(expected = classOf[AssertionError])
   def testBoundsSx(): Unit = {
-    indexPoint(Point(0d, 0d), Space(Point(1d, -1d), Point(-1d, 1d)))
+    SepTree(Space(Point(1d, -1d), Point(-1d, 1d)), 1)
+      .indexPoint(Point(0d, 0d))
   }
 
   @Test(expected = classOf[AssertionError])
   def testBoundsSy(): Unit = {
-    indexPoint(Point(0d, 0d), Space(Point(-1d, 1d), Point(1d, -1d)))
+    SepTree(Space(Point(-1d, 1d), Point(1d, -1d)), 1)
+      .indexPoint(Point(0d, 0d))
   }
 
   @Test(expected = classOf[AssertionError])
   def testBoundsDepth(): Unit = {
-    indexPoint(Point(0d, 0d), depth = 0)
+    SepTree(Space(Point(-1d, -1d), Point(1d, 1d)), 0)
   }
 
   @Test
@@ -40,28 +44,8 @@ class SepTreeTest {
   }
 
   @Test
-  def testNormalizeDenormalize: Unit = {
-    val px = 0d
-    val py = 80d
-    val sx0 = -30d
-    val sx1 = 50d
-    val sy0 = 60d
-    val sy1 = 100d
-    val pnx = SepTree.normalizePlusMinus1(px, sx0, sx1)
-    val pny = SepTree.normalizePlusMinus1(py, sy0, sy1)
-    assertEquals(-0.25, pnx, 0d)
-    assertEquals(0d, pny, 0d)
-
-    val pdx = SepTree.denormalizePlusMinus1(pnx, sx0, sx1)
-    val pdy = SepTree.denormalizePlusMinus1(pny, sy0, sy1)
-    assertEquals(px, pdx, 0d)
-    assertEquals(py, pdy, 0d)
-  }
-
-  @Test
   def testDepthTwoSurelyInside(): Unit = {
     val tree = SepTree(Space(Point(-1d, -1d), Point(1d, 1d)), 2)
-
     val center1 = Point(-.5d, .7d)
     val index1 = tree.indexPoint(center1)
     assertEquals(SepIndex(7, 1), index1)

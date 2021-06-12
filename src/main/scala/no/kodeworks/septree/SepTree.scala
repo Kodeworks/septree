@@ -113,6 +113,7 @@ case class SepHex(
     val distanceSquareds = subHexes.map { sh =>
       val x = p.x - sh.center.x
       val y = p.y - sh.center.y
+      println(s"p - c = $p - ${sh.center}, d = ${math.sqrt(x * x + y * y)}, d2 = ${x * x + y * y}")
       (sh, x * x + y * y)
     }
     distanceSquareds.sortInPlaceBy(_._2).take(3).toList
@@ -191,9 +192,7 @@ object SepTree {
   val piDiv3 = math.Pi / 3d // 60 deg in rads, angle from hex 5 to hex 2 etc
   val sinPiDiv3 = math.sin(piDiv3)
   val surelyInside = 0.8
-  val surelyInsideSquared = surelyInside * surelyInside
   val surelyOutside = 1.2
-  val surelyOutsideSquared = surelyOutside * surelyOutside
   // Rotations to the center of each subhex.
   // rot1 = rots(0) etc
   // these are base rotations without the adjustment for 1 level deeper.
@@ -220,7 +219,9 @@ object SepTree {
       val subRot = (levelD - 1d) * acos5div2sqrt7
       val subRotCos = math.cos(subRot)
       val subRotSin = math.sin(subRot)
-      SepLevelInfo(level, subR, subr, subs, subRot, subRotCos, subRotSin, surelyInsideSquared * R, surelyOutsideSquared * R)
+      val subSurelyInside = surelyInside * subR
+      val subSurelyOutside = surelyOutside * subR
+      SepLevelInfo(level, subR, subr, subs, subRot, subRotCos, subRotSin, subSurelyInside * subSurelyInside, subSurelyOutside * subSurelyOutside)
     }.toArray
 
   /*

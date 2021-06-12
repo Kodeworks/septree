@@ -61,6 +61,6 @@ object SvgRenderer extends App {
     (rect :: hexPaths).mkString("\n")
   }
 
-  val sepTree = SepTree(Space(Point(5500d, 9850d), Point(15500, 19850d)), 2)
+  val sepTree = SepTree(Space(Point(5500d, 9850d), Point(15500, 19850d)), 5)
   renderToFile(sepTree, 29702d -)
 }

@@ -80,6 +80,7 @@ case class SepHex(
 
   //first make it work, then make it optimal.
   def indexPoint(p: Point): Option[SepIndex] = {
+//    println(s"level $level, index $index")
     if (depth == level) {
       if (exactlyInsideThisLevel(p))
         Some(SepIndex(index))
@@ -99,6 +100,7 @@ case class SepHex(
         indexUnlessSurelyOutside(s0, p, d0, subLevel.surelyOutsideSquared)
           .orElse(indexUnlessSurelyOutside(s1, p, d1, subLevel.surelyOutsideSquared))
           .orElse(indexUnlessSurelyOutside(s2, p, d2, subLevel.surelyOutsideSquared))
+          .map(subIndex => SepIndex(index :: subIndex.keys))
       }
     }
   }
@@ -113,7 +115,7 @@ case class SepHex(
     val distanceSquareds = subHexes.map { sh =>
       val x = p.x - sh.center.x
       val y = p.y - sh.center.y
-      println(s"p - c = $p - ${sh.center}, d = ${math.sqrt(x * x + y * y)}, d2 = ${x * x + y * y}")
+//      println(s"p - c = $p - ${sh.center}, d = ${math.sqrt(x * x + y * y)}, d2 = ${x * x + y * y}")
       (sh, x * x + y * y)
     }
     distanceSquareds.sortInPlaceBy(_._2).take(3).toList
@@ -191,8 +193,8 @@ object SepTree {
   val todoDeprecated = piDiv6 - acos5div2sqrt7
   val piDiv3 = math.Pi / 3d // 60 deg in rads, angle from hex 5 to hex 2 etc
   val sinPiDiv3 = math.sin(piDiv3)
-  val surelyInside = 0.8
-  val surelyOutside = 1.2
+  val surelyInside = 0.71
+  val surelyOutside = 1.05
   // Rotations to the center of each subhex.
   // rot1 = rots(0) etc
   // these are base rotations without the adjustment for 1 level deeper.

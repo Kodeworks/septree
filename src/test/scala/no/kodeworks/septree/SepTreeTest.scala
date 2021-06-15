@@ -48,27 +48,27 @@ class SepTreeTest {
     val tree = SepTree(Space(Point(-1d, -1d), Point(1d, 1d)), 2)
     val center1 = Point(-.5d, .7d)
     val index1 = tree.indexPoint(center1)
-    assertEquals(SepIndex(7, 1), index1)
+    assertEquals(SepIndex(1), index1)
 
     val center2 = Point(.7d, .7d)
     val index2 = tree.indexPoint(center2)
-    assertEquals(SepIndex(7, 2), index2)
+    assertEquals(SepIndex(2), index2)
 
     val center3 = Point(-.9d, .1d)
     val index3 = tree.indexPoint(center3)
-    assertEquals(SepIndex(7, 6), index3)
+    assertEquals(SepIndex(6), index3)
 
     val center5 = Point(.9d, -.1d)
     val index5 = tree.indexPoint(center5)
-    assertEquals(SepIndex(7, 3), index5)
+    assertEquals(SepIndex(3), index5)
 
     val center6 = Point(-.7d, -.7d)
     val index6 = tree.indexPoint(center6)
-    assertEquals(SepIndex(7, 5), index6)
+    assertEquals(SepIndex(5), index6)
 
     val center7 = Point(.5d, -.7d)
     val index7 = tree.indexPoint(center7)
-    assertEquals(SepIndex(7, 4), index7)
+    assertEquals(SepIndex(4), index7)
   }
 
   @Test
@@ -76,7 +76,7 @@ class SepTreeTest {
     val tree = SepTree(Space(Point(-1d, -1d), Point(1d, 1d)), 2)
     val center1 = Point(-.5d, .7d)
     val index1 = tree.indexPoint(center1)
-    assertEquals(SepIndex(7, 1), index1)
+    assertEquals(SepIndex(1), index1)
   }
 
   @Test

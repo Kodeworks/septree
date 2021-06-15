@@ -28,7 +28,7 @@ case class SepHex(
                    levelInfo: SepLevelInfo,
                    levelInfos: Array[SepLevelInfo],
                    center: Point,
-                   index: Int = 7
+                   index: Int = 0
                  ) {
 
   import levelInfo._
@@ -80,10 +80,10 @@ case class SepHex(
 
   //first make it work, then make it optimal.
   def indexPoint(p: Point): Option[SepIndex] = {
-//    println(s"level $level, index $index")
+    //    println(s"level $level, index $index")
     if (depth == level) {
       if (exactlyInsideThisLevel(p))
-        Some(SepIndex(index))
+        Some(if (0 != index) SepIndex(index) else SepIndex())
       else None
     } else {
       val List((s0, d0), (s1, d1), (s2, d2)) = shortestThreeDistanceSquareds(p)
@@ -95,12 +95,14 @@ case class SepHex(
         else null
 
       if (null != surelyInsideHex) {
-        Some(SepIndex(index :: surelyInsideHex.indexPoint(p).get.keys))
+        val subKeys = surelyInsideHex.indexPoint(p).get.keys
+        Some(SepIndex(if (0 != index) index :: subKeys else subKeys))
       } else {
         indexUnlessSurelyOutside(s0, p, d0, subLevel.surelyOutsideSquared)
           .orElse(indexUnlessSurelyOutside(s1, p, d1, subLevel.surelyOutsideSquared))
           .orElse(indexUnlessSurelyOutside(s2, p, d2, subLevel.surelyOutsideSquared))
-          .map(subIndex => SepIndex(index :: subIndex.keys))
+          .map(subIndex => SepIndex(
+            if (0 != index) index :: subIndex.keys else subIndex.keys))
       }
     }
   }
@@ -115,7 +117,7 @@ case class SepHex(
     val distanceSquareds = subHexes.map { sh =>
       val x = p.x - sh.center.x
       val y = p.y - sh.center.y
-//      println(s"p - c = $p - ${sh.center}, d = ${math.sqrt(x * x + y * y)}, d2 = ${x * x + y * y}")
+      //      println(s"p - c = $p - ${sh.center}, d = ${math.sqrt(x * x + y * y)}, d2 = ${x * x + y * y}")
       (sh, x * x + y * y)
     }
     distanceSquareds.sortInPlaceBy(_._2).take(3).toList

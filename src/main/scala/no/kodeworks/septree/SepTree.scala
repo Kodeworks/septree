@@ -59,7 +59,7 @@ case class SepHex(
           val subCenter = calcCenter(center, li.s, li.rotation - piDiv6)
           subIndex += 1
           SepHex(li, levelInfos, subCenter, subIndex)
-        } ++ Array(SepHex(li, levelInfos, center))
+        } ++ Array(SepHex(li, levelInfos, center, 7))
       }
     subHexes0
   }
@@ -80,7 +80,7 @@ case class SepHex(
 
   //first make it work, then make it optimal.
   def indexPoint(p: Point): Option[SepIndex] = {
-    //    println(s"level $level, index $index")
+    //        println(s"level $level, index $index")
     if (depth == level) {
       if (exactlyInsideThisLevel(p))
         Some(if (0 != index) SepIndex(index) else SepIndex())
@@ -153,6 +153,17 @@ case class SepHex(
       }
     }
   }
+
+//  def kmeans(k: Int, indices: List[SepIndex]) = {
+//    var i = 1
+//    val indexKeys = mutable.ListBuffer(indices.map(_.keys): _*)
+//    val counts = mutable.Map[List[Int], Int]()
+//    indexKeys.foreach(key =>
+//      counts.updateWith(key.take(i))(c => Some(c.map(1 +).getOrElse(1))))
+//    println(counts)
+//    //TODO more depth
+//  }
+
 }
 
 case class SepLevelInfo(
@@ -195,6 +206,7 @@ object SepTree {
   val todoDeprecated = piDiv6 - acos5div2sqrt7
   val piDiv3 = math.Pi / 3d // 60 deg in rads, angle from hex 5 to hex 2 etc
   val sinPiDiv3 = math.sin(piDiv3)
+  val rectInside = 0.87
   val surelyInside = 0.71
   val surelyOutside = 1.05
   // Rotations to the center of each subhex.
@@ -254,13 +266,14 @@ object SepTree {
     val w = s.upperRight.x - s.lowerLeft.x
     val h = s.upperRight.y - s.lowerLeft.y
     val maxH = 2d * sinPiDiv3 * w
-    if (maxH < h) {
+    val unbufferedR = if (maxH < h) {
       //height limited
       h / 2d / sinPiDiv3
     } else {
       //width limited
       w
     }
+    unbufferedR / rectInside
   }
 
   def calcr(R: Double): Double =

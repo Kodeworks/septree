@@ -116,4 +116,12 @@ class SepTreeTest {
       assertTrue(s"Corner ${i + 1} not inside", inside)
     }
   }
+
+  @Test
+  def indexLineTest() {
+    val tree = SepTree(Space(Point(5500d, 9850d), Point(15500, 19850d)), 6)
+    val line = Line(Point(6600d, 10000d), Point(6600d, 15000d))
+    println(tree.hex.intersects(line))
+//    tree.indexLine(line)
+  }
 }

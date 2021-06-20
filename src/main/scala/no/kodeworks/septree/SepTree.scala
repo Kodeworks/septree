@@ -16,12 +16,21 @@ case class SepTree(
   }
 
   def indexPoint(p: Point): SepIndex = {
+    assumePointContainedInSpace(p)
+    hex.indexPoint(p).get
+  }
+
+  def indexLine(l: Line): SepIndex = {
+    assumePointContainedInSpace(l.p0)
+    assumePointContainedInSpace(l.p1)
+    hex.indexLine(l)
+  }
+
+  def assumePointContainedInSpace(p: Point): Unit =
     assume(space.lowerLeft.x <= p.x &&
       space.lowerLeft.y <= p.y &&
       p.x <= space.upperRight.x &&
       p.y <= space.upperRight.y, "point must be contained in space")
-    hex.indexPoint(p).get
-  }
 }
 
 case class SepHex(
@@ -107,13 +116,95 @@ case class SepHex(
     }
   }
 
-  def indexUnlessSurelyOutside(hex: SepHex, p: Point, distanceSquared: Double, surelyOutsideSquared: Double) =
+  def indexLine(l: Line): SepIndex = {
+    ???
+  }
+
+  def intersects(l: Line): Boolean = {
+    //move to origo
+    val tx0 = l.p0.x - center.x
+    val ty0 = l.p0.y - center.y
+    val tx1 = l.p1.x - center.x
+    val ty1 = l.p1.y - center.y
+    //line two-point equation
+    val ta = ty0 - ty1
+    val tb = tx1 - tx0
+    val tc = tx0 * ty1 - tx1 * ty0
+    //squared distance from line to origo
+    val td = tc * tc / (ta * ta + tb * tb)
+    //if line is guaranteed outside circle then its no need to check line seqment.
+    if (levelInfo.surelyOutsideSquared < td) {
+      false
+    }
+    //    else if (level != depth) {
+    //      false
+    //    }
+    else {
+      val y0 = stretchY(rotateYToBaselineScaleToUnit(tx0, ty0))
+      val x0 = skewX(rotateXToBaselineScaleToUnit(tx0, ty0), y0)
+      val y1 = stretchY(rotateYToBaselineScaleToUnit(tx1, ty1))
+      val x1 = skewX(rotateXToBaselineScaleToUnit(tx1, ty1), y1)
+      val sx = x1 - x0
+      val sy = y1 - y0
+      //the vertices of the centered, scaled, skewed and stretched hex at the center:
+      /*
+                |
+                +-----+
+              / |     |
+            /   |     |
+       ---+-----o-----+---
+          |     |   /
+          |     | /
+          +-----+
+                |
+       */
+      val h0x = 0d
+      val h0y = 1d
+      val h1x = 1d
+      val h1y = 1d
+      val h2x = 1d
+      val h2y = 0d
+      val h3x = 0d
+      val h3y = -1d
+      val h4x = -1d
+      val h4y = -1d
+      val h5x = -1d
+      val h5y = 0d
+      Line.intersects(h0x, h0y, h1x, h1y, x0, y0, sx, sy) ||
+        Line.intersects(h1x, h1y, h2x, h2y, x0, y0, sx, sy) ||
+        Line.intersects(h2x, h2y, h3x, h3y, x0, y0, sx, sy) ||
+        Line.intersects(h3x, h3y, h4x, h4y, x0, y0, sx, sy) ||
+        Line.intersects(h4x, h4y, h5x, h5y, x0, y0, sx, sy) ||
+        Line.intersects(h5x, h5y, h0x, h0y, x0, y0, sx, sy) ||
+        (transformedInside(x0, y0) && transformedInside(x1, y1))
+
+
+
+      //      val a = y0 - y1
+      //      val b = x1 - x0
+      //      val c = x0 * y1 - x1 * y0
+      //      val s = -a / b
+      //      val ix = -c / a
+      //      val iy = -c / b
+      //
+      //      val lx = x1 - x0
+      //      val ly = y1 - y0
+
+      //guaranteed inside outside test
+      //    val t2 = tx * tx + ty * ty
+      //    if (t2 < r * r) true
+      //    else if (R * R < t2) false
+
+    }
+  }
+
+  private def indexUnlessSurelyOutside(hex: SepHex, p: Point, distanceSquared: Double, surelyOutsideSquared: Double) =
     if (distanceSquared < surelyOutsideSquared) {
       hex.indexPoint(p)
     } else None
 
   //TODO distances can be severely optimized.
-  def shortestThreeDistanceSquareds(p: Point): List[(SepHex, Double)] = {
+  private def shortestThreeDistanceSquareds(p: Point): List[(SepHex, Double)] = {
     val distanceSquareds = subHexes.map { sh =>
       val x = p.x - sh.center.x
       val y = p.y - sh.center.y
@@ -132,37 +223,43 @@ case class SepHex(
     if (t2 < r * r) true
     else if (R * R < t2) false
     else {
-      //rotate back to baseline
-      val rx = tx * rotationCosine + ty * rotationSine
-      val ry = -tx * rotationSine + ty * rotationCosine
-      //scale to unit
-      val sx = rx / R
-      val sy = ry / R
-      //stretch y and check
-      val dy = sy * twoDivSqrt3
-      if (1d < dy || dy < -1d) false
-      else {
-        //skew x and check
-        val dx =.5d * dy + sx
-        if (1d < dx || dx < -1d) false
-        else {
-          val d = dy - dx
-          if (1d < d || d < -1d) false
-          else true
-        }
-      }
+      //stretch rotated scaled y and check
+      val dy = stretchY(rotateYToBaselineScaleToUnit(tx, ty))
+      transformedInside(skewX(rotateXToBaselineScaleToUnit(tx, ty), dy), dy)
     }
   }
 
-//  def kmeans(k: Int, indices: List[SepIndex]) = {
-//    var i = 1
-//    val indexKeys = mutable.ListBuffer(indices.map(_.keys): _*)
-//    val counts = mutable.Map[List[Int], Int]()
-//    indexKeys.foreach(key =>
-//      counts.updateWith(key.take(i))(c => Some(c.map(1 +).getOrElse(1))))
-//    println(counts)
-//    //TODO more depth
-//  }
+  private def transformedInside(dx: => Double, dy: Double) =
+    transformedIsInside(dy) && transformedXIsInside(dx, dy)
+
+  private def transformedXIsInside(dx: Double, dy: Double) =
+    transformedIsInside(dx) && transformedIsInside(dy - dx)
+
+  private def transformedIsInside(d: Double) =
+    !(1d < d || d < -1d)
+
+  def rotateXToBaselineScaleToUnit(x: Double, y: Double) =
+    (x * rotationCosine + y * rotationSine) / R
+
+  def rotateYToBaselineScaleToUnit(x: Double, y: Double) =
+    (-x * rotationSine + y * rotationCosine) / R
+
+  def skewX(sx: Double, dy: Double) =
+    .5d * dy + sx
+
+  def stretchY(sy: Double) =
+    sy * twoDivSqrt3
+
+
+  //  def kmeans(k: Int, indices: List[SepIndex]) = {
+  //    var i = 1
+  //    val indexKeys = mutable.ListBuffer(indices.map(_.keys): _*)
+  //    val counts = mutable.Map[List[Int], Int]()
+  //    indexKeys.foreach(key =>
+  //      counts.updateWith(key.take(i))(c => Some(c.map(1 +).getOrElse(1))))
+  //    println(counts)
+  //    //TODO more depth
+  //  }
 
 }
 
@@ -178,6 +275,8 @@ case class SepLevelInfo(
                          surelyOutsideSquared: Double
                        )
 
+case class Point(x: Double, y: Double)
+
 case class Space(
                   lowerLeft: Point,
                   upperRight: Point
@@ -185,7 +284,46 @@ case class Space(
   assume(lowerLeft.x < upperRight.x && lowerLeft.y < upperRight.y, "Space must be unwarped and nonempty")
 }
 
-case class Point(x: Double, y: Double)
+case class Line(p0: Point, p1: Point) {
+  def a = p0.y - p1.y
+
+  def b = p1.x - p0.x
+
+  def c = p0.x * p1.y - p1.x * p0.y
+
+  def abc = (a, b, c)
+}
+
+object Line {
+  // caller expected to calc line x y for last line:
+  //      val sx = dx - cx
+  //      val sy = dy - cy
+  def intersects(ax: Double, ay: Double, bx: Double, by: Double, cx: Double, cy: Double, sx: Double, sy: Double): Boolean = {
+    val cmpx = cx - ax
+    val cmpy = cy - ay
+    val rx = bx - ax
+    val ry = by - ay
+    val cmpXr = cmpx * ry - cmpy * rx
+    if (cmpXr == 0d) {
+      // Lines are collinear, and so intersect if they have any overlap
+      ((cmpx < 0d) != (cx - bx < 0d)) ||
+        ((cmpy < 0d) != (cy - by < 0d))
+    } else {
+
+      val rXs = rx * sy - ry * sx
+      if (rXs == 0d) {
+        // Lines are parallel
+        false
+      } else {
+        val cmpXs = cmpx * sy - cmpy * sx
+        val rXsr = 1d / rXs
+        val t = cmpXs * rXsr
+        val u = cmpXr * rXsr
+        0d <= t && t <= 1d && 0d <= u && u <= 1d
+      }
+    }
+  }
+}
 
 /**
  * Subhexes are numbered from 1 to 7 and starts in upper left. Then upper right, left, mid, right, lower left, lower right.

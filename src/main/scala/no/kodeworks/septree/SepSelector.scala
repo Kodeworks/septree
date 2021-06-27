@@ -20,24 +20,10 @@ case class SepSelector(
     assume(index == s.index, s"index mismatch, cannot merge, $index != ${s.index}")
     SepSelector(index,
       subSelectors.zip(s.subSelectors).map {
-        case (SepSelector.empty, SepSelector.empty) => SepSelector.empty
         case (SepSelector.empty, s1) => s1
         case (s0, SepSelector.empty) => s0
         case (s0, s1) => s0.merge(s1)
       })
-  }
-
-  def mergeOptimisticInPlace(s: SepSelector): SepSelector = {
-    
-    SepSelector(index,
-      subSelectors.zip(s.subSelectors).map {
-        case (SepSelector.empty, SepSelector.empty) => SepSelector.empty
-        case (SepSelector.empty, s1) => s1
-        case (s0, SepSelector.empty) => s0
-        case (s0, s1) => s0.merge(s1)
-      })
-
-    ???
   }
 
   override def toString: String = {

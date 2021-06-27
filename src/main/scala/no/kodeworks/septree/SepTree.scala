@@ -8,6 +8,7 @@ case class SepTree(
                   ) {
   assume(0 < depth, "depth must be positive")
 
+  //todo cache hex?
   def hex: SepHex = {
     val R = calcR(space)
     val c = calcCenter(space)
@@ -20,7 +21,7 @@ case class SepTree(
     hex.indexPoint(p).get
   }
 
-  def indexLine(l: Line): SepIndex = {
+  def indexLine(l: Line): List[SepIndex] = {
     assumePointContainedInSpace(l.p0)
     assumePointContainedInSpace(l.p1)
     hex.indexLine(l)
@@ -62,13 +63,16 @@ case class SepHex(
   def subHexes: Array[SepHex] = {
     if (null == subHexes0)
       subHexes0 = {
-        val li = levelInfos(level)
-        var subIndex = 0
-        centers.map { calcCenter =>
-          val subCenter = calcCenter(center, li.s, li.rotation - piDiv6)
-          subIndex += 1
-          SepHex(li, levelInfos, subCenter, subIndex)
-        } ++ Array(SepHex(li, levelInfos, center, 7))
+        if (level == depth) Array.empty
+        else {
+          val li = levelInfos(level)
+          var subIndex = 0
+          centers.map { calcCenter =>
+            val subCenter = calcCenter(center, li.s, li.rotation - piDiv6)
+            subIndex += 1
+            SepHex(li, levelInfos, subCenter, subIndex)
+          } ++ Array(SepHex(li, levelInfos, center, 7))
+        }
       }
     subHexes0
   }
@@ -79,7 +83,8 @@ case class SepHex(
       else Nil)
 
   def select(sel: SepSelector): List[SepHex] =
-    if (index == sel.index) {
+    if (sel != SepSelector.empty &&
+      (index == sel.index || 0 == index)) {
       var i = -1
       (this :: subHexes.toList.flatMap { sh =>
         i += 1
@@ -116,8 +121,32 @@ case class SepHex(
     }
   }
 
-  def indexLine(l: Line): SepIndex = {
-    ???
+  def indexLine(l: Line): List[SepIndex] = {
+    //move to origo
+    val tx0 = l.p0.x - center.x
+    val ty0 = l.p0.y - center.y
+    val tx1 = l.p1.x - center.x
+    val ty1 = l.p1.y - center.y
+
+    if (lineMaybeInsideCentralized(tx0, ty0, tx1, ty1)) {
+      if (level == depth) {
+        if (intersectsCentralized(tx0, ty0, tx1, ty1) && 0 != index) {
+          List(SepIndex(index))
+        } else {
+          Nil
+        }
+      } else {
+        subHexes.toList
+          .map(_.indexLine(l))
+          .filter(_.nonEmpty)
+          .flatMap(_.map(si =>
+            if (0 != index) SepIndex(index :: si.keys)
+            else si
+          ))
+      }
+    } else {
+      Nil
+    }
   }
 
   def intersects(l: Line): Boolean = {
@@ -126,76 +155,58 @@ case class SepHex(
     val ty0 = l.p0.y - center.y
     val tx1 = l.p1.x - center.x
     val ty1 = l.p1.y - center.y
+    lineMaybeInsideCentralized(tx0, ty0, tx1, ty1) &&
+      intersectsCentralized(tx0, ty0, tx1, ty1)
+  }
+
+  def lineMaybeInsideCentralized(tx0: Double, ty0: Double, tx1: Double, ty1: Double) = {
     //line two-point equation
     val ta = ty0 - ty1
     val tb = tx1 - tx0
     val tc = tx0 * ty1 - tx1 * ty0
     //squared distance from line to origo
     val td = tc * tc / (ta * ta + tb * tb)
-    //if line is guaranteed outside circle then its no need to check line seqment.
-    if (levelInfo.surelyOutsideSquared < td) {
-      false
-    }
-    //    else if (level != depth) {
-    //      false
-    //    }
-    else {
-      val y0 = stretchY(rotateYToBaselineScaleToUnit(tx0, ty0))
-      val x0 = skewX(rotateXToBaselineScaleToUnit(tx0, ty0), y0)
-      val y1 = stretchY(rotateYToBaselineScaleToUnit(tx1, ty1))
-      val x1 = skewX(rotateXToBaselineScaleToUnit(tx1, ty1), y1)
-      val sx = x1 - x0
-      val sy = y1 - y0
-      //the vertices of the centered, scaled, skewed and stretched hex at the center:
-      /*
-                |
-                +-----+
-              / |     |
-            /   |     |
-       ---+-----o-----+---
-          |     |   /
-          |     | /
-          +-----+
-                |
-       */
-      val h0x = 0d
-      val h0y = 1d
-      val h1x = 1d
-      val h1y = 1d
-      val h2x = 1d
-      val h2y = 0d
-      val h3x = 0d
-      val h3y = -1d
-      val h4x = -1d
-      val h4y = -1d
-      val h5x = -1d
-      val h5y = 0d
-      Line.intersects(h0x, h0y, h1x, h1y, x0, y0, sx, sy) ||
-        Line.intersects(h1x, h1y, h2x, h2y, x0, y0, sx, sy) ||
-        Line.intersects(h2x, h2y, h3x, h3y, x0, y0, sx, sy) ||
-        Line.intersects(h3x, h3y, h4x, h4y, x0, y0, sx, sy) ||
-        Line.intersects(h4x, h4y, h5x, h5y, x0, y0, sx, sy) ||
-        Line.intersects(h5x, h5y, h0x, h0y, x0, y0, sx, sy) ||
-        (transformedInside(x0, y0) && transformedInside(x1, y1))
+    td < levelInfo.surelyOutsideSquared
+  }
 
-
-
-      //      val a = y0 - y1
-      //      val b = x1 - x0
-      //      val c = x0 * y1 - x1 * y0
-      //      val s = -a / b
-      //      val ix = -c / a
-      //      val iy = -c / b
-      //
-      //      val lx = x1 - x0
-      //      val ly = y1 - y0
-
-      //guaranteed inside outside test
-      //    val t2 = tx * tx + ty * ty
-      //    if (t2 < r * r) true
-      //    else if (R * R < t2) false
-
-    }
+  def intersectsCentralized(tx0: Double, ty0: Double, tx1: Double, ty1: Double): Boolean = {
+    val y0 = stretchY(rotateYToBaselineScaleToUnit(tx0, ty0))
+    val x0 = skewX(rotateXToBaselineScaleToUnit(tx0, ty0), y0)
+    val y1 = stretchY(rotateYToBaselineScaleToUnit(tx1, ty1))
+    val x1 = skewX(rotateXToBaselineScaleToUnit(tx1, ty1), y1)
+    val sx = x1 - x0
+    val sy = y1 - y0
+    //the vertices of the centered, scaled, skewed and stretched hex at the center:
+    /*
+              |
+              +-----+
+            / |     |
+          /   |     |
+     ---+-----o-----+---
+        |     |   /
+        |     | /
+        +-----+
+              |
+     */
+    val h0x = 0d
+    val h0y = 1d
+    val h1x = 1d
+    val h1y = 1d
+    val h2x = 1d
+    val h2y = 0d
+    val h3x = 0d
+    val h3y = -1d
+    val h4x = -1d
+    val h4y = -1d
+    val h5x = -1d
+    val h5y = 0d
+    Line.intersects(h0x, h0y, h1x, h1y, x0, y0, sx, sy) ||
+      Line.intersects(h1x, h1y, h2x, h2y, x0, y0, sx, sy) ||
+      Line.intersects(h2x, h2y, h3x, h3y, x0, y0, sx, sy) ||
+      Line.intersects(h3x, h3y, h4x, h4y, x0, y0, sx, sy) ||
+      Line.intersects(h4x, h4y, h5x, h5y, x0, y0, sx, sy) ||
+      Line.intersects(h5x, h5y, h0x, h0y, x0, y0, sx, sy) ||
+      (transformedInside(x0, y0) && transformedInside(x1, y1))
   }
 
   private def indexUnlessSurelyOutside(hex: SepHex, p: Point, distanceSquared: Double, surelyOutsideSquared: Double) =
@@ -284,47 +295,6 @@ case class Space(
   assume(lowerLeft.x < upperRight.x && lowerLeft.y < upperRight.y, "Space must be unwarped and nonempty")
 }
 
-case class Line(p0: Point, p1: Point) {
-  def a = p0.y - p1.y
-
-  def b = p1.x - p0.x
-
-  def c = p0.x * p1.y - p1.x * p0.y
-
-  def abc = (a, b, c)
-}
-
-object Line {
-  // caller expected to calc line x y for last line:
-  //      val sx = dx - cx
-  //      val sy = dy - cy
-  def intersects(ax: Double, ay: Double, bx: Double, by: Double, cx: Double, cy: Double, sx: Double, sy: Double): Boolean = {
-    val cmpx = cx - ax
-    val cmpy = cy - ay
-    val rx = bx - ax
-    val ry = by - ay
-    val cmpXr = cmpx * ry - cmpy * rx
-    if (cmpXr == 0d) {
-      // Lines are collinear, and so intersect if they have any overlap
-      ((cmpx < 0d) != (cx - bx < 0d)) ||
-        ((cmpy < 0d) != (cy - by < 0d))
-    } else {
-
-      val rXs = rx * sy - ry * sx
-      if (rXs == 0d) {
-        // Lines are parallel
-        false
-      } else {
-        val cmpXs = cmpx * sy - cmpy * sx
-        val rXsr = 1d / rXs
-        val t = cmpXs * rXsr
-        val u = cmpXr * rXsr
-        0d <= t && t <= 1d && 0d <= u && u <= 1d
-      }
-    }
-  }
-}
-
 /**
  * Subhexes are numbered from 1 to 7 and starts in upper left. Then upper right, left, mid, right, lower left, lower right.
  * R = big radius
@@ -381,6 +351,7 @@ object SepTree {
   /*
    * 'Space' is an area wrapped in an initial hex.
    * It is snapped to the center of the hex in case it does not fill the entire width or height.
+   * Some buffer is appended around the space so we can be sure it fits.
    * Point is within this area.
    *       _________________                _________________
    *      /    (n)onspace   \              /   |         |   \
@@ -437,13 +408,4 @@ object SepTree {
   // returns true if point is left of line. returns false otherwise
   def leftOfLine(p: Point, a: Point, b: Point) =
     0 < (b.x - a.x) * (p.y - a.y) - (b.y - a.y) * (p.x - a.x)
-
-  //todo investigate shear mapped rotated and scaled point instead
-  //  def insideHex(p: Point, corners: Array[Point]) = {
-  //    val Array(a, b, c, d, e, f) = corners
-  //    val ad = leftOfLine(p, a, d)
-  //    val be = leftOfLine(p, b, e)
-  //    val cf = leftOfLine(p, c, f)
-  //    if(ad && be && cf && leftOfLine)
-  //  }
 }

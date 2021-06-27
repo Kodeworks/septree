@@ -118,10 +118,23 @@ class SepTreeTest {
   }
 
   @Test
+  def lineIntersectsTest() {
+    val tree = SepTree(Space(Point(5500d, 9850d), Point(15500, 19850d)), 6)
+    val hex = tree.hex
+    val l0 = Line(Point(5600d, 10000d), Point(5600d, 15000d))
+    assertTrue(hex.intersects(l0))
+
+    val sub7 = hex.subHexes(6)
+    assertFalse(sub7.intersects(l0))
+  }
+
+  @Test
   def indexLineTest() {
     val tree = SepTree(Space(Point(5500d, 9850d), Point(15500, 19850d)), 6)
-    val line = Line(Point(6600d, 10000d), Point(6600d, 15000d))
-    println(tree.hex.intersects(line))
-//    tree.indexLine(line)
+    val hex = tree.hex
+    val l0 = Line(Point(5600d, 10000d), Point(5600d, 15000d))
+    val i0 = hex.indexLine(l0)
+    val s0 = SepSelector.fromIndices(i0)
+//    println(s0)
   }
 }

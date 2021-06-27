@@ -10,6 +10,11 @@ case class SepIndex(indices: List[Long]) {
       else keys0.takeWhile(0 !=)
     }
 
+  def toSelector = keys.reverse match {
+    case head :: tail =>
+      SepSelector(0, tail.foldLeft(SepSelector(head))((sel, key) => SepSelector(key, sel)))
+  }
+
   override def toString: String =
     s"SepIndex(${keys.mkString(",")})"
 }
@@ -24,7 +29,7 @@ object SepIndex {
   val keysPerShortIndex = 64 / 3 //there are 21 keys per long (63 bits)
 
   def apply(sepKeys: Iterable[Int]): SepIndex = {
-    assume(sepKeys.forall(sk => 1 <= sk && sk < 8))
+    assume(sepKeys.forall(sk => 1 <= sk && sk < 8), s"sepKeys must be from 1 to 7. Was: ${sepKeys.toList.mkString(",")}")
     if (sepKeys.isEmpty) depthOne
     else new SepIndex(sepKeys
       .grouped(keysPerShortIndex)

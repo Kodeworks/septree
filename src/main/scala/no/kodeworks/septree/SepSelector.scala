@@ -1,5 +1,7 @@
 package no.kodeworks.septree
 
+import scala.collection.mutable
+
 /*
 index = 0 means include always
  */
@@ -12,6 +14,35 @@ case class SepSelector(
     assume(7 == subSelectors.size, "must provide exactly 7 subSelectors")
     val noZeros = subSelectors.filter(_.index != 0)
     assume(noZeros.distinct.size == noZeros.size, "cannot provide duplicate subSelectors per index")
+  }
+
+  def merge(s: SepSelector): SepSelector = {
+    assume(index == s.index, s"index mismatch, cannot merge, $index != ${s.index}")
+    SepSelector(index,
+      subSelectors.zip(s.subSelectors).map {
+        case (SepSelector.empty, SepSelector.empty) => SepSelector.empty
+        case (SepSelector.empty, s1) => s1
+        case (s0, SepSelector.empty) => s0
+        case (s0, s1) => s0.merge(s1)
+      })
+  }
+
+  def mergeOptimisticInPlace(s: SepSelector): SepSelector = {
+    
+    SepSelector(index,
+      subSelectors.zip(s.subSelectors).map {
+        case (SepSelector.empty, SepSelector.empty) => SepSelector.empty
+        case (SepSelector.empty, s1) => s1
+        case (s0, SepSelector.empty) => s0
+        case (s0, s1) => s0.merge(s1)
+      })
+
+    ???
+  }
+
+  override def toString: String = {
+    val filteredSubSelectors = subSelectors.filter(_.subSelectors.nonEmpty)
+    s"SepSelector($index,${filteredSubSelectors.mkString(",")})"
   }
 }
 
@@ -42,4 +73,8 @@ object SepSelector {
       }
     apply(index, subSels)
   }
+
+  def fromIndices(is: Iterable[SepIndex]): SepSelector =
+    if (is.isEmpty) SepSelector.empty
+    else is.map(_.toSelector).reduce(_ merge _)
 }

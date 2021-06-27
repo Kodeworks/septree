@@ -119,13 +119,28 @@ class SepTreeTest {
 
   @Test
   def lineIntersectsTest() {
-    val tree = SepTree(Space(Point(5500d, 9850d), Point(15500, 19850d)), 6)
-    val hex = tree.hex
-    val l0 = Line(Point(5600d, 10000d), Point(5600d, 15000d))
+    val lowerLeft = Point(5500d, 9850d)
+    val upperRight = Point(15500, 19850d)
+    val sepTree = SepTree(Space(lowerLeft, upperRight), 6)
+    val hex = sepTree.hex
+//    val l0 = Line(Point(5650d, 10000d), Point(9650d, 19700d))
+    val l0 = Line(Point(sepTree.space.lowerLeft.x, sepTree.space.upperRight.y), Point(sepTree.space.upperRight.x, sepTree.space.lowerLeft.y))
+
     assertTrue(hex.intersects(l0))
 
-    val sub7 = hex.subHexes(6)
+    val sub7 = hex.subHexes(5)
     assertFalse(sub7.intersects(l0))
+
+    val s = System.currentTimeMillis
+    var t = s
+    var c = 0
+    while (t < s + 2000L) {
+      hex.indexLine(l0)
+      c += 1
+      t = System.currentTimeMillis
+    }
+    val millisPerIntersect = (t - s).toDouble / c.toDouble
+    println(s"c=$c, millisPerIntersect=$millisPerIntersect")
   }
 
   @Test
@@ -135,6 +150,6 @@ class SepTreeTest {
     val l0 = Line(Point(5600d, 10000d), Point(5600d, 15000d))
     val i0 = hex.indexLine(l0)
     val s0 = SepSelector.fromIndices(i0)
-//    println(s0)
+    //    println(s0)
   }
 }

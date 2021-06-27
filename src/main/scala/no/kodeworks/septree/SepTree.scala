@@ -121,7 +121,10 @@ case class SepHex(
     }
   }
 
-  def indexLine(l: Line): List[SepIndex] = {
+  def indexLine(l: Line): List[SepIndex] =
+    indexLineByList(l).map(SepIndex(_))
+
+  def indexLineByList(l: Line): List[List[Int]] = {
     //move to origo
     val tx0 = l.p0.x - center.x
     val ty0 = l.p0.y - center.y
@@ -131,16 +134,16 @@ case class SepHex(
     if (lineMaybeInsideCentralized(tx0, ty0, tx1, ty1)) {
       if (level == depth) {
         if (intersectsCentralized(tx0, ty0, tx1, ty1) && 0 != index) {
-          List(SepIndex(index))
+          List(List(index))
         } else {
           Nil
         }
       } else {
         subHexes.toList
-          .map(_.indexLine(l))
+          .map(_.indexLineByList(l))
           .filter(_.nonEmpty)
           .flatMap(_.map(si =>
-            if (0 != index) SepIndex(index :: si.keys)
+            if (0 != index) index :: si
             else si
           ))
       }

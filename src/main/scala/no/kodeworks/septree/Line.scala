@@ -27,7 +27,6 @@ object Line {
       ((cmpx < 0d) != (cx - bx < 0d)) ||
         ((cmpy < 0d) != (cy - by < 0d))
     } else {
-
       val rXs = rx * sy - ry * sx
       if (rXs == 0d) {
         // Lines are parallel

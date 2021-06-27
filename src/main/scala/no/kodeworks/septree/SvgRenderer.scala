@@ -23,6 +23,10 @@ object SvgRenderer extends App {
       Line(Point(sepTree.space.upperRight.x, sepTree.space.lowerLeft.y), sepTree.space.lowerLeft),
       Line(sepTree.space.lowerLeft, Point(sepTree.space.lowerLeft.x, sepTree.space.upperRight.y))
     )
+//    val lines = Array(
+//      Line(Point(sepTree.space.lowerLeft.x, sepTree.space.upperRight.y), Point(sepTree.space.upperRight.x, sepTree.space.lowerLeft.y)),
+//      Line(sepTree.space.lowerLeft, sepTree.space.upperRight)
+//    )
     var s = System.currentTimeMillis()
     val lineIndices = lines.map(hex.indexLine)
     println(s"lineIndices took ${System.currentTimeMillis - s} millis")
@@ -79,6 +83,6 @@ object SvgRenderer extends App {
     (rect :: hexPaths).mkString("\n")
   }
 
-  val sepTree = SepTree(Space(Point(5500d, 9850d), Point(15500, 19850d)), 6)
+  val sepTree = SepTree(Space(Point(5500d, 9850d), Point(15500, 19850d)), 9)
   renderToFile(sepTree, 29702d -)
 }

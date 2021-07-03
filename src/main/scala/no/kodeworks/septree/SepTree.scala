@@ -263,18 +263,6 @@ case class SepHex(
 
   def stretchY(sy: Double) =
     sy * twoDivSqrt3
-
-
-  //  def kmeans(k: Int, indices: List[SepIndex]) = {
-  //    var i = 1
-  //    val indexKeys = mutable.ListBuffer(indices.map(_.keys): _*)
-  //    val counts = mutable.Map[List[Int], Int]()
-  //    indexKeys.foreach(key =>
-  //      counts.updateWith(key.take(i))(c => Some(c.map(1 +).getOrElse(1))))
-  //    println(counts)
-  //    //TODO more depth
-  //  }
-
 }
 
 case class SepLevelInfo(

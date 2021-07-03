@@ -10,14 +10,15 @@
     <packaging>jar</packaging>
 
     <properties>
-        <junit.version>4.13</junit.version>
+        <fastparse.version>2.3.2</fastparse.version>
+        <junit.version>4.13.2</junit.version>
         <maven-compiler-plugin.version>3.8.0</maven-compiler-plugin.version>
         <maven-enforcer-plugin.version>3.0.0-M2</maven-enforcer-plugin.version>
         <maven-jar-plugin.version>3.1.0</maven-jar-plugin.version>
         <maven-gpg-plugin.version>1.6</maven-gpg-plugin.version>
         <scala-collection-compat.version>2.1.1</scala-collection-compat.version>
         <scala.version.major>2.13</scala.version.major>
-        <scala.version>${scala.version.major}.3</scala.version>
+        <scala.version>${scala.version.major}.6</scala.version>
         <scala-maven-plugin.version>4.4.0</scala-maven-plugin.version>
     </properties>
 
@@ -99,6 +100,12 @@
             <groupId>org.scala-lang</groupId>
             <artifactId>scala-library</artifactId>
             <version>${scala.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.lihaoyi</groupId>
+            <artifactId>fastparse_${scala.version.major}</artifactId>
+            <version>${fastparse.version}</version>
         </dependency>
 
         <dependency>

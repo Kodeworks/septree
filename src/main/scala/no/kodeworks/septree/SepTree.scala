@@ -284,6 +284,9 @@ case class Space(
                   upperRight: Point
                 ) {
   assume(lowerLeft.x < upperRight.x && lowerLeft.y < upperRight.y, "Space must be unwarped and nonempty")
+
+  def center = Point((lowerLeft.x + upperRight.x) / 2d, (lowerLeft.y + upperRight.y) / 2d)
+  def span = Point(upperRight.x - lowerLeft.x, upperRight.y - lowerLeft.y)
 }
 
 /**

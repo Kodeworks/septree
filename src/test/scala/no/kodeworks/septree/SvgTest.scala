@@ -2,17 +2,15 @@ package no.kodeworks.septree
 
 import org.junit.Test
 
-import java.io.File
 import scala.io.Source
 
 class SvgTest {
 
   @Test
   def testy(): Unit = {
-    val svg = Source.fromResource("graphpaper.svg").mkString
-    println(SvgCodec.wspStr)
-    println(svg)
-    val parsed = SvgCodec.toSvg(svg)
-    println(parsed)
+    val svgContent = Source.fromResource("graphpaper.svg").mkString
+    val space = Space(Point(0d, 0d), Point(100d, 100d))
+    val gg = SvgParser.svgStringToLinesScaledToSpace(svgContent, Some(space))
+    println(gg.take(5).mkString("\n"))
   }
 }

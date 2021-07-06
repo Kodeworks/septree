@@ -43,7 +43,9 @@ object SvgParser {
     val realScale = math.min(ratioX, ratioY) * scale
 
     val buf = (mmSpan.x * realScale - mmSpan.y * realScale) / 2d
-    val (bufX, bufY) = if (0 < buf) (0d, buf) else (-buf, 0d)
+    var (bufX, bufY) = if (0 < buf) (0d, buf) else (-buf, 0d)
+    bufX += (1d - scale) * spaceSpan.x / 2d
+    bufY += (1d - scale) * spaceSpan.y / 2d
 
     def scalePoint(p: Point) = Point(
       (p.x - mm.lowerLeft.x) * realScale + spaceOrMm.lowerLeft.x + bufX,

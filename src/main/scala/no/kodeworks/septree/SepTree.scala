@@ -83,7 +83,7 @@ case class SepHex(
       else Nil)
 
   def select(sel: SepSelector): List[SepHex] =
-    if (sel != SepSelector.empty &&
+    if (!sel.isEmpty &&
       (index == sel.index || 0 == index)) {
       var i = -1
       (this :: subHexes.toList.flatMap { sh =>

@@ -47,11 +47,11 @@ object SvgParser {
     bufX += (1d - scale) * spaceSpan.x / 2d
     bufY += (1d - scale) * spaceSpan.y / 2d
 
-    def scalePoint(p: Point) = Point(
+    def transScaleTransFlipYPoint(p: Point) = Point(
       (p.x - mm.lowerLeft.x) * realScale + spaceOrMm.lowerLeft.x + bufX,
-      (p.y - mm.lowerLeft.y) * realScale + spaceOrMm.lowerLeft.y + bufY)
+      spaceOrMm.upperRight.y - ((p.y - mm.lowerLeft.y) * realScale + spaceOrMm.lowerLeft.y + bufY))
 
-    lines.map(l => Line(scalePoint(l.p0), scalePoint(l.p1)))
+    lines.map(l => Line(transScaleTransFlipYPoint(l.p0), transScaleTransFlipYPoint(l.p1)))
   }
 
   private def checkScale(scale: Double) = {
@@ -94,5 +94,4 @@ object SvgParser {
         val (xs, ys) = ps.flatMap(Point.unapply).unzip
         Space(Point(xs.min, ys.min), Point(xs.max, ys.max))
     }
-
 }

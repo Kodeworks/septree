@@ -30,6 +30,8 @@ case class SepSelector(
     val filteredSubSelectors = subSelectors.filter(_.subSelectors.nonEmpty)
     s"SepSelector($index,${filteredSubSelectors.mkString(",")})"
   }
+
+  def isEmpty = subSelectors.isEmpty
 }
 
 object SepSelector {
